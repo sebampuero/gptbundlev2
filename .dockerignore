@@ -1,0 +1,51 @@
+# Exclude VCS
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtualenvs / local envs
+venv/
+ENV/
+env/
+.venv/
+pyvenv.cfg
+__pypackages__/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Tests / local tooling caches (optional, remove if your image needs tests)
+.pytest_cache/
+.tox/
+.nox/
+.mypy_cache/
+.hypothesis/
+
+# IDE / editor settings
+.vscode/
+.idea/
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Secrets / config that should not be baked into the image
+.env
+.env.* 
+docker-compose.override.yml
+docker-compose.*.local.yml
+
+# Optional: exclude files not needed at runtime
+*.log
+*.sqlite3
+*.db
+*.sqlite
+*.tar

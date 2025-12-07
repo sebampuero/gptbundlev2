@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtualenvs
+venv/
+ENV/
+env/
+.venv/
+pyvenv.cfg
+__pypackages__/
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-wheel-metadata/
+
+# Test / coverage / tooling
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Jupyter
+.ipynb_checkpoints
+
+# Logs / DBs
+*.log
+logs/
+*.sqlite3
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / env
+.env
+.env.*        # ignore environment-specific env files (keep .env.example tracked instead)
+
+# Misc
+*~ 
+*.swp
+*.swo
