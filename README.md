@@ -7,8 +7,17 @@ A project created with FastAPI CLI.
 ### Start the development server:
 
 ```bash
-uv run fastapi dev
+docker run -p 8000:8000 gptbundlev2
 ```
+
+## Docker Compose
+
+To run the application with the database:
+
+```bash
+docker-compose up --build
+```
+
 
 Visit http://localhost:8000
 
