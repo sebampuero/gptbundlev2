@@ -6,7 +6,13 @@ WORKDIR /app
 
 ENV UV_COMPILE_BYTECODE=1
 
+ENV UV_CACHE_DIR=/app/.cache/uv
+
 COPY pyproject.toml uv.lock ./
+
+RUN chown -R 1000:1000 /app
+
+USER 1000
 
 RUN uv sync --frozen --no-dev --no-install-project
 
@@ -14,4 +20,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 COPY . .
 
-CMD ["fastapi", "run", "src/main.py", "--port", "8000", "--host", "0.0.0.0"]
+ENTRYPOINT ["sh", "src/entrypoint.sh"]
