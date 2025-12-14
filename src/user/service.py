@@ -1,5 +1,5 @@
 from .models import UserCreate, UserLogin, User
-from src.auth.service import get_password_hash, verify_password
+from src.security.service import get_password_hash, verify_password
 from sqlmodel import Session, select, update
 from fastapi import Depends
 from typing import Annotated
