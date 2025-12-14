@@ -33,3 +33,21 @@ def cleanup_users_fixture(session: Session):
          statement = delete(User).where(User.id == user_id)
          session.exec(statement)
     session.commit()
+
+
+@pytest.fixture(name="client")
+def client_fixture(session: Session):
+    """
+    Fixture to provide a TestClient with overridden database dependency.
+    """
+    from fastapi.testclient import TestClient
+    from src.main import app
+    from src.common.db import get_db
+
+    def get_session_override():
+        return session
+
+    app.dependency_overrides[get_db] = get_session_override
+    client = TestClient(app)
+    yield client
+    app.dependency_overrides.clear()
