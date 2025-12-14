@@ -2,31 +2,21 @@ from typing import Any, Annotated
 from fastapi import Depends, APIRouter, HTTPException
 from src.common.db import get_pg_db
 from sqlmodel import Session
-from .models import (
-    UserResponse,
-    UserCreate,
-    UserRegister,
-    UserLogin,
-    User
-)
+from .models import UserResponse, UserCreate, UserRegister, UserLogin, User
 
-from .service import (
-    create_user,
-    get_user_by_email,
-    get_user_by_username,
-    login
-)
+from .service import create_user, get_user_by_email, get_user_by_username, login
 
 router = APIRouter()
 
 SessionDep = Annotated[Session, Depends(get_pg_db)]
 
+
 @router.post(
-    "/register", 
+    "/register",
     response_model=UserResponse,
     responses={
         409: {"description": "User with this email already exists in the system"}
-    }
+    },
 )
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     user = get_user_by_email(session=session, email=user_in.email)
@@ -39,12 +29,13 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     user = create_user(session=session, user_create=user_create)
     return user
 
+
 @router.post(
-    "/login", 
+    "/login",
     response_model=UserResponse,
     responses={
         404: {"description": "User with this username does not exist in the system"}
-    }
+    },
 )
 def login_user(session: SessionDep, user_in: UserLogin) -> Any:
     user = get_user_by_username(session=session, username=user_in.username)

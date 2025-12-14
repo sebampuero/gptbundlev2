@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_PORT: int = 5432
 
+    AWS_REGION: str = "eu-central-1"
+    AWS_ENDPOINT_URL_DYNAMODB: str | None = None
+
     @computed_field  # type: ignore[misc]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
