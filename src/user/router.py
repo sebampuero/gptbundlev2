@@ -1,6 +1,6 @@
 from typing import Any, Annotated
 from fastapi import Depends, APIRouter, HTTPException
-from src.common.db import get_db
+from src.common.db import get_pg_db
 from sqlmodel import Session
 from .models import (
     UserResponse,
@@ -19,7 +19,7 @@ from .service import (
 
 router = APIRouter()
 
-SessionDep = Annotated[Session, Depends(get_db)]
+SessionDep = Annotated[Session, Depends(get_pg_db)]
 
 @router.post(
     "/register", 

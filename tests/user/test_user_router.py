@@ -73,5 +73,5 @@ def test_login_user_not_found(client: TestClient):
             "password": "password123"
         },
     )
-    assert response.status_code == 409
+    assert response.status_code == 404
     assert response.json()["detail"] == "The user with this username does not exist in the system"

@@ -3,7 +3,7 @@ from src.auth.service import get_password_hash, verify_password
 from sqlmodel import Session, select, update
 from fastapi import Depends
 from typing import Annotated
-from src.common.db import get_db
+from src.common.db import get_pg_db
 
 
 def create_user(user_create: UserCreate, session: Session) -> User:
