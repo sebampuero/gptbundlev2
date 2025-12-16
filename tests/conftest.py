@@ -51,3 +51,27 @@ def client_fixture(session: Session):
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="cleanup_chats")
+def cleanup_chats_fixture():
+    """
+    Fixture to track and delete chats created during tests.
+    Usage:
+        def test_something(cleanup_chats):
+            chat = create_chat(...)
+            cleanup_chats.append((chat.chat_id, chat.timestamp))
+    """
+    chat_keys = []
+    yield chat_keys
+    
+    if not chat_keys:
+        return
+        
+    from src.messaging.models import Chat
+    
+    for chat_id, timestamp in chat_keys:
+         try:
+             Chat.get(chat_id, timestamp).delete()
+         except Chat.DoesNotExist:
+             pass
