@@ -1,6 +1,6 @@
 from datetime import datetime
 import pytest
-from src.messaging.service import create_chat, get_chat, get_chats_by_user_email
+from src.messaging.service import create_chat, get_chat, get_chats_by_user_email, append_messages
 from src.messaging.schemas import ChatCreate, MessageCreate
 from src.messaging.repository import ChatRepository
 
@@ -42,7 +42,7 @@ def test_get_chat(cleanup_chats: list):
     chat_id = "test_get_chat_id"
     timestamp = datetime.now().timestamp()
     user_email = "test_get@example.com"
-    messages = [MessageCreate(text="Hi", type="text")]
+    messages = [MessageCreate(text="Hi", type="AI")]
     
     chat_in = ChatCreate(
         chat_id=chat_id,
@@ -72,7 +72,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         chat_id="chat1",
         timestamp=timestamp,
         user_email=user_email_1,
-        messages=[MessageCreate(text="Hello 1", type="text")]
+        messages=[MessageCreate(text="Hello 1", type="AI")]
     )
     create_chat(chat_in_1, chat_repo)
     cleanup_chats.append(("chat1", timestamp))
@@ -81,7 +81,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         chat_id="chat2",
         timestamp=timestamp,
         user_email=user_email_1,
-        messages=[MessageCreate(text="Hello 2", type="text")]
+        messages=[MessageCreate(text="Hello 2", type="User")]
     )
     create_chat(chat_in_2, chat_repo)
     cleanup_chats.append(("chat2", timestamp))
@@ -90,7 +90,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         chat_id="chat3",
         timestamp=timestamp,
         user_email=user_email_2,
-        messages=[MessageCreate(text="Hello 3", type="text")]
+        messages=[MessageCreate(text="Hello 3", type="AI")]
     )
     create_chat(chat_in_3, chat_repo)
     cleanup_chats.append(("chat3", timestamp))
@@ -105,3 +105,30 @@ def test_get_chats_by_useremail(cleanup_chats: list):
     assert user2_chats[0].user_email == user_email_2
 
     assert len(get_chats_by_user_email("nonexistent@example.com", chat_repo)) == 0
+
+
+def test_append_messages(cleanup_chats: list):
+    chat_repo = ChatRepository()
+    
+    chat_id = "test_append_messages_id"
+    timestamp = datetime.now().timestamp()
+    user_email = "test_append_messages@example.com"
+    messages = [MessageCreate(text="Hello", type="AI")]
+    
+    chat_in = ChatCreate(
+        chat_id=chat_id,
+        timestamp=timestamp,
+        user_email=user_email,
+        messages=messages
+    )
+    
+    chat = create_chat(chat_in, chat_repo)
+    cleanup_chats.append((chat.chat_id, chat.timestamp))
+    
+    new_messages = [
+        MessageCreate(text="Hello 2", type="User"),
+        MessageCreate(text="Hello 3", type="AI"),
+    ]
+    
+    updated_chat = append_messages(chat_id, timestamp, new_messages, chat_repo)
+    assert updated_chat
