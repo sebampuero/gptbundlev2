@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     AWS_REGION: str = "eu-central-1"
     AWS_ENDPOINT_URL_DYNAMODB: str | None = None
 
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    LOG_DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
+
     @computed_field  # type: ignore[misc]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:

@@ -1,6 +1,7 @@
 from .models import Chat as ChatModel
 from .schemas import ChatCreate, Chat, MessageCreate
 from typing import List
+from pynamodb.exceptions import DeleteError
 
 class ChatRepository:
     def create_chat(self, chat_in: ChatCreate) -> Chat:
@@ -32,6 +33,14 @@ class ChatRepository:
             chat_model.save()
             return True
         except ChatModel.DoesNotExist:
+            return False
+    
+    def delete_chat(self, chat_id: str, timestamp: float) -> bool:
+        try:
+            chat_model = ChatModel.get(chat_id, timestamp)
+            chat_model.delete()
+            return True
+        except (ChatModel.DoesNotExist, DeleteError) as e:
             return False
 
     def _create_chat_from_model(self, chat_model: ChatModel) -> Chat:

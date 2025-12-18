@@ -1,6 +1,6 @@
 from datetime import datetime
 import pytest
-from src.messaging.service import create_chat, get_chat, get_chats_by_user_email, append_messages
+from src.messaging.service import create_chat, get_chat, get_chats_by_user_email, append_messages, delete_chat
 from src.messaging.schemas import ChatCreate, MessageCreate
 from src.messaging.repository import ChatRepository
 
@@ -132,3 +132,41 @@ def test_append_messages(cleanup_chats: list):
     
     updated_chat = append_messages(chat_id, timestamp, new_messages, chat_repo)
     assert updated_chat
+
+def test_delete_chat(cleanup_chats: list):
+    chat_repo = ChatRepository()
+    
+    chat_id = "test_delete_chat_id"
+    timestamp = datetime.now().timestamp()
+    user_email = "test_delete@example.com"
+    messages = [MessageCreate(text="Hello", type="AI", llm_model="gpt4")]
+    
+    chat_in = ChatCreate(
+        chat_id=chat_id,
+        timestamp=timestamp,
+        user_email=user_email,
+        messages=messages
+    )
+    
+    chat = create_chat(chat_in, chat_repo)
+    # No need to add to cleanup_chats since we're deleting it
+    
+    # Verify the chat exists
+    found_chat = get_chat(chat_id, timestamp, chat_repo)
+    assert found_chat is not None
+    
+    # Delete the chat
+    deleted = delete_chat(chat_id, timestamp, chat_repo)
+    assert deleted is True
+    
+    # Verify the chat no longer exists
+    deleted_chat = get_chat(chat_id, timestamp, chat_repo)
+    assert deleted_chat is None
+    
+    # Deleting a non-existent chat should return False
+    deleted_again = delete_chat(chat_id, timestamp, chat_repo)
+    assert deleted_again is False
+    
+    # Deleting with wrong chat_id should return False
+    deleted_wrong_id = delete_chat("nonexistent_id", timestamp, chat_repo)
+    assert deleted_wrong_id is False

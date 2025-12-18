@@ -96,8 +96,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
     
     # Retrieve all
     response = client.get(
-        f"{settings.API_V1_STR}/messaging/chats",
-        params={"user_email": user_email}
+        f"{settings.API_V1_STR}/messaging/chats/{user_email}",
     )
     assert response.status_code == 200
     content = response.json()
@@ -106,8 +105,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
 
 def test_retrieve_chats_not_found(client: TestClient):
     response = client.get(
-        f"{settings.API_V1_STR}/messaging/chats",
-        params={"user_email": "nobody@example.com"}
+        f"{settings.API_V1_STR}/messaging/chats/nobody@example.com"
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Chats not found"
@@ -148,3 +146,42 @@ def test_append_messages_success(client: TestClient, cleanup_chats: list):
     assert content["messages"][0]["text"] == "First message"
     assert content["messages"][1]["text"] == "Second message"
     assert content["messages"][1]["type"] == "ai"
+
+def test_delete_chat_success(client: TestClient, cleanup_chats: list):
+    chat_id = "test_delete_api_chat"
+    timestamp = datetime.now().timestamp()
+    user_email = "test_delete_api@example.com"
+    
+    # Create chat first
+    client.post(
+        f"{settings.API_V1_STR}/messaging/chat",
+        json={
+            "chat_id": chat_id,
+            "timestamp": timestamp,
+            "user_email": user_email,
+            "messages": [{"text": "To be deleted", "type": "human", "llm_model": "gpt4"}]
+        },
+    )
+    # No need to add to cleanup_chats since we're deleting it
+    
+    # Delete the chat
+    delete_response = client.delete(
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
+    )
+    assert delete_response.status_code == 200
+    
+    # Verify it's deleted
+    get_response = client.get(
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
+    )
+    assert get_response.status_code == 404
+
+def test_delete_chat_not_found(client: TestClient):
+    chat_id = "non_existent_delete_chat"
+    timestamp = datetime.now().timestamp()
+    
+    response = client.delete(
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Chat not found"
