@@ -10,7 +10,7 @@ def test_create_chat(cleanup_chats: list):
     chat_id = "test_chat_id"
     timestamp = datetime.now().timestamp()
     user_email = "test@example.com"
-    messages = [MessageCreate(text="Hello", type="AI")]
+    messages = [MessageCreate(text="Hello", type="AI", llm_model="gpt4")]
     
     chat_in = ChatCreate(
         chat_id=chat_id,
@@ -42,7 +42,7 @@ def test_get_chat(cleanup_chats: list):
     chat_id = "test_get_chat_id"
     timestamp = datetime.now().timestamp()
     user_email = "test_get@example.com"
-    messages = [MessageCreate(text="Hi", type="AI")]
+    messages = [MessageCreate(text="Hi", type="AI", llm_model="gpt4")]
     
     chat_in = ChatCreate(
         chat_id=chat_id,
@@ -72,7 +72,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         chat_id="chat1",
         timestamp=timestamp,
         user_email=user_email_1,
-        messages=[MessageCreate(text="Hello 1", type="AI")]
+        messages=[MessageCreate(text="Hello 1", type="AI", llm_model="gpt4")]
     )
     create_chat(chat_in_1, chat_repo)
     cleanup_chats.append(("chat1", timestamp))
@@ -81,7 +81,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         chat_id="chat2",
         timestamp=timestamp,
         user_email=user_email_1,
-        messages=[MessageCreate(text="Hello 2", type="User")]
+        messages=[MessageCreate(text="Hello 2", type="User", llm_model="gpt4")]
     )
     create_chat(chat_in_2, chat_repo)
     cleanup_chats.append(("chat2", timestamp))
@@ -90,7 +90,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         chat_id="chat3",
         timestamp=timestamp,
         user_email=user_email_2,
-        messages=[MessageCreate(text="Hello 3", type="AI")]
+        messages=[MessageCreate(text="Hello 3", type="AI", llm_model="gpt4")]
     )
     create_chat(chat_in_3, chat_repo)
     cleanup_chats.append(("chat3", timestamp))
@@ -113,7 +113,7 @@ def test_append_messages(cleanup_chats: list):
     chat_id = "test_append_messages_id"
     timestamp = datetime.now().timestamp()
     user_email = "test_append_messages@example.com"
-    messages = [MessageCreate(text="Hello", type="AI")]
+    messages = [MessageCreate(text="Hello", type="AI", llm_model="gpt4")]
     
     chat_in = ChatCreate(
         chat_id=chat_id,
@@ -126,8 +126,8 @@ def test_append_messages(cleanup_chats: list):
     cleanup_chats.append((chat.chat_id, chat.timestamp))
     
     new_messages = [
-        MessageCreate(text="Hello 2", type="User"),
-        MessageCreate(text="Hello 3", type="AI"),
+        MessageCreate(text="Hello 2", type="User", llm_model="gpt4"),
+        MessageCreate(text="Hello 3", type="AI", llm_model="gpt4"),
     ]
     
     updated_chat = append_messages(chat_id, timestamp, new_messages, chat_repo)

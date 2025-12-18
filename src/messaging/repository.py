@@ -43,6 +43,7 @@ class ChatRepository:
                 MessageCreate(
                     text=msg.text,
                     type=msg.type,
-                    media=msg.media) for msg in chat_model.messages
+                    media=msg.media,
+                    llm_model=msg.llm_model) for msg in chat_model.messages
             ],
         )

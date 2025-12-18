@@ -17,7 +17,7 @@ def test_new_chat_success(client: TestClient, cleanup_chats: list):
         f"{settings.API_V1_STR}/messaging/chat",
         json={
             "user_email": user_email,
-            "messages": [{"text": "Hello API", "type": "human"}]
+            "messages": [{"text": "Hello API", "type": "human", "llm_model": "gpt4"}]
         },
     )
     assert response.status_code == 200
@@ -43,7 +43,7 @@ def test_retrieve_chat_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "Found me", "type": "human"}]
+            "messages": [{"text": "Found me", "type": "human", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append((chat_id, timestamp))
@@ -78,7 +78,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
             "chat_id": "chat_1",
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "Msg 1", "type": "human"}]
+            "messages": [{"text": "Msg 1", "type": "human", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append(("chat_1", timestamp))
@@ -89,7 +89,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
             "chat_id": "chat_2",
             "timestamp": timestamp + 1,
             "user_email": user_email,
-            "messages": [{"text": "Msg 2", "type": "human"}]
+            "messages": [{"text": "Msg 2", "type": "human", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append(("chat_2", timestamp + 1))
@@ -124,7 +124,7 @@ def test_append_messages_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "First message", "type": "human"}]
+            "messages": [{"text": "First message", "type": "human", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append((chat_id, timestamp))
@@ -132,7 +132,7 @@ def test_append_messages_success(client: TestClient, cleanup_chats: list):
     # Append a new message
     append_response = client.put(
         f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
-        json=[{"text": "Second message", "type": "ai"}]
+        json=[{"text": "Second message", "type": "ai", "llm_model": "gpt4"}]
     )
     
     assert append_response.status_code == 200

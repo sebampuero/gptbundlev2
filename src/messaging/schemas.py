@@ -8,6 +8,7 @@ class MessageCreate(BaseModel):
     text: str
     type: str
     media: str | None = None
+    llm_model: str
 
 class ChatBase(BaseModel):
     user_email: str

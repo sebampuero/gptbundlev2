@@ -19,6 +19,7 @@ class MessageItem(MapAttribute):
     text = UnicodeAttribute()
     type = UnicodeAttribute()
     media = UnicodeAttribute(null=True)
+    llm_model = UnicodeAttribute()
 
 
 class Chat(Model):
