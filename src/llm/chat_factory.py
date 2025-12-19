@@ -1,4 +1,4 @@
-from models import Chat
+from .models import Chat
 
 def convert_chat_to_model(chat: Dict[str, Any]) -> Chat:
     messages = []

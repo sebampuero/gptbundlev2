@@ -1,7 +1,7 @@
 from litellm import acompletion
-from models import Chat
+from .models import Chat
 from typing import Dict, Any
-from chat_factory import convert_chat_to_model
+from .chat_factory import convert_chat_to_model
 
 async def generate_text_response(chat: Dict[str, Any]):
     chat = convert_chat_to_model(chat)
