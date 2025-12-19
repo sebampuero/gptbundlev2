@@ -1,10 +1,12 @@
 from typing import Any, Annotated, List
 from fastapi import Depends, APIRouter, HTTPException, WebSocket
 from src.common.db import get_pg_db
+from src.llm.service import generate_text_response
 from .service import create_chat, get_chat, get_chats_by_user_email, append_messages, delete_chat
 from .repository import ChatRepository
 from .schemas import ChatCreate, Chat, MessageCreate
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -97,5 +99,6 @@ def remove_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) ->
 async def websocket_endpoint(websocket: WebSocket, model: str):
     await websocket.accept()
     while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
+        user_message = await websocket.receive_text()
+        async for chunk in generate_text_response(json.loads(user_message)):
+            await websocket.send_text(chunk)
