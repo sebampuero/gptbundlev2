@@ -17,7 +17,7 @@ def test_new_chat_success(client: TestClient, cleanup_chats: list):
         f"{settings.API_V1_STR}/messaging/chat",
         json={
             "user_email": user_email,
-            "messages": [{"text": "Hello API", "type": "human", "llm_model": "gpt4"}]
+            "messages": [{"content": "Hello API", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     assert response.status_code == 200
@@ -27,7 +27,7 @@ def test_new_chat_success(client: TestClient, cleanup_chats: list):
     assert content["timestamp"] < datetime.now().timestamp()
     assert content["user_email"] == user_email
     assert len(content["messages"]) == 1
-    assert content["messages"][0]["text"] == "Hello API"
+    assert content["messages"][0]["content"] == "Hello API"
     
     cleanup_chats.append((content["chat_id"], content["timestamp"]))
 
@@ -43,7 +43,7 @@ def test_retrieve_chat_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "Found me", "type": "human", "llm_model": "gpt4"}]
+            "messages": [{"content": "Found me", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append((chat_id, timestamp))
@@ -78,7 +78,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
             "chat_id": "chat_1",
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "Msg 1", "type": "human", "llm_model": "gpt4"}]
+            "messages": [{"content": "Msg 1", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append(("chat_1", timestamp))
@@ -89,7 +89,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
             "chat_id": "chat_2",
             "timestamp": timestamp + 1,
             "user_email": user_email,
-            "messages": [{"text": "Msg 2", "type": "human", "llm_model": "gpt4"}]
+            "messages": [{"content": "Msg 2", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append(("chat_2", timestamp + 1))
@@ -122,7 +122,7 @@ def test_append_messages_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "First message", "type": "human", "llm_model": "gpt4"}]
+            "messages": [{"content": "First message", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append((chat_id, timestamp))
@@ -130,7 +130,7 @@ def test_append_messages_success(client: TestClient, cleanup_chats: list):
     # Append a new message
     append_response = client.put(
         f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
-        json=[{"text": "Second message", "type": "ai", "llm_model": "gpt4"}]
+        json=[{"content": "Second message", "role": "ai", "message_type": "text", "llm_model": "gpt4"}]
     )
     
     assert append_response.status_code == 200
@@ -143,9 +143,9 @@ def test_append_messages_success(client: TestClient, cleanup_chats: list):
     content = response.json()
     assert content["chat_id"] == chat_id
     assert len(content["messages"]) == 2
-    assert content["messages"][0]["text"] == "First message"
-    assert content["messages"][1]["text"] == "Second message"
-    assert content["messages"][1]["type"] == "ai"
+    assert content["messages"][0]["content"] == "First message"
+    assert content["messages"][1]["content"] == "Second message"
+    assert content["messages"][1]["role"] == "ai"
 
 def test_delete_chat_success(client: TestClient, cleanup_chats: list):
     chat_id = "test_delete_api_chat"
@@ -159,7 +159,7 @@ def test_delete_chat_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"text": "To be deleted", "type": "human", "llm_model": "gpt4"}]
+            "messages": [{"content": "To be deleted", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     # No need to add to cleanup_chats since we're deleting it

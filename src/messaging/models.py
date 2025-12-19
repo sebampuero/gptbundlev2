@@ -16,8 +16,9 @@ class UserEmailIndex(GlobalSecondaryIndex):
 
 
 class MessageItem(MapAttribute):
-    text = UnicodeAttribute()
-    type = UnicodeAttribute()
+    content = UnicodeAttribute()
+    role = UnicodeAttribute()
+    message_type = UnicodeAttribute()
     media = UnicodeAttribute(null=True)
     llm_model = UnicodeAttribute()
 

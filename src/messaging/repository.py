@@ -50,8 +50,9 @@ class ChatRepository:
             user_email=chat_model.user_email,
             messages=[
                 MessageCreate(
-                    text=msg.text,
-                    type=msg.type,
+                    content=msg.content,
+                    role=msg.role,
+                    message_type=msg.message_type,
                     media=msg.media,
                     llm_model=msg.llm_model) for msg in chat_model.messages
             ],

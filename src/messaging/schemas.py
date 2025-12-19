@@ -5,8 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class MessageCreate(BaseModel):
-    text: str
-    type: str
+    content: str
+    role: str
+    message_type: str = "text"
     media: str | None = None
     llm_model: str
 

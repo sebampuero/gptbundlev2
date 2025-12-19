@@ -1,5 +1,5 @@
 from typing import Any, Annotated, List
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, WebSocket
 from src.common.db import get_pg_db
 from .service import create_chat, get_chat, get_chats_by_user_email, append_messages, delete_chat
 from .repository import ChatRepository
@@ -29,7 +29,8 @@ def new_chat(chat_repo: ChatRepositoryDep, chat_in: ChatCreate) -> Any:
     responses={
         404: {"description": "Chat not found"}
     },
-)
+) #TODO: add authorization. An authenticated user may request a chat of another user. Maybe we can pass the email along the request
+# after the middleware authenticates the user and validates the token
 def retrieve_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) -> Any:
     logger.info(f"Received GET Request for chat: {chat_id} and timestamp: {timestamp}")
     chat = get_chat(chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp)
@@ -46,7 +47,7 @@ def retrieve_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) 
     responses={
         404: {"description": "Chats not found"}
     },
-)
+) # TODO: paginate this
 def retrieve_chats(chat_repo: ChatRepositoryDep, user_email: str) -> Any:
     logger.info(f"Received GET Request for chats of user: {user_email}")
     chats = get_chats_by_user_email(chat_repo=chat_repo, user_email=user_email)
@@ -91,3 +92,10 @@ def remove_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) ->
             status_code=404,
             detail="Chat not found",
         )
+
+@router.websocket("/chat/ws/{model}")
+async def websocket_endpoint(websocket: WebSocket, model: str):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
