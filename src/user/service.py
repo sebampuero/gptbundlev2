@@ -12,14 +12,11 @@ def create_user(user_create: UserCreate, session: Session) -> User:
     session.refresh(db_obj)
     return db_obj
 
-
 def get_user_by_email(email: str, session: Session) -> User | None:
     return session.exec(select(User).where(User.email == email)).one_or_none()
 
-
 def get_user_by_username(username: str, session: Session) -> User | None:
     return session.exec(select(User).where(User.username == username)).one_or_none()
-
 
 def login(user: UserLogin, session: Session) -> User | None:
     db_user = get_user_by_username(user.username, session)
@@ -28,3 +25,11 @@ def login(user: UserLogin, session: Session) -> User | None:
     if not verify_password(user.password, db_user.hashed_password):
         return None
     return db_user
+
+def delete_user_by_email(email: str, session: Session) -> bool:
+    user = get_user_by_email(email, session)
+    if not user:
+        return False
+    session.delete(user)
+    session.commit()
+    return True

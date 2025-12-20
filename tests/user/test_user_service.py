@@ -1,5 +1,5 @@
 from sqlmodel import Session
-from src.user.service import create_user, get_user_by_email, get_user_by_username, login
+from src.user.service import create_user, get_user_by_email, get_user_by_username, login, delete_user_by_email
 from src.user.models import UserCreate, UserLogin
 import pytest
 
@@ -83,3 +83,22 @@ def test_login(session: Session, cleanup_users: list):
     # Test wrong password
     bad_password_data = UserLogin(username=username, password="wrong_password")
     assert login(bad_password_data, session) is None
+
+def test_delete_user_by_email_success(session: Session):
+    email = "test_delete@example.com"
+    username = "test_delete_user"
+    password = "password123"
+    
+    user_create = UserCreate(email=email, username=username, password=password)
+    user = create_user(user_create, session)
+    
+    assert get_user_by_email(email, session) is not None
+    
+    result = delete_user_by_email(email, session)
+    assert result is True
+    
+    assert get_user_by_email(email, session) is None
+
+def test_delete_user_by_email_not_found(session: Session):
+    result = delete_user_by_email("nonexistent@example.com", session)
+    assert result is False
