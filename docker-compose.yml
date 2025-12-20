@@ -1,8 +1,4 @@
 secrets:
-  openai_api_key:
-    environment: OPENAI_API_KEY
-  deepseek_api_key:
-    environment: DEEPSEEK_API_KEY
   openrouter_api_key:
     environment: OPENROUTER_API_KEY
 
@@ -24,8 +20,6 @@ services:
       - db
       - dynamodb-local
     secrets:
-      - openai_api_key
-      - deepseek_api_key
       - openrouter_api_key
 
   db:
