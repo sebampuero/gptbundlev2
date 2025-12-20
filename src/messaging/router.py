@@ -7,6 +7,7 @@ from .repository import ChatRepository
 from .schemas import ChatCreate, Chat, MessageCreate
 import logging
 import json
+from starlette.websockets import WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -95,10 +96,13 @@ def remove_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) ->
             detail="Chat not found",
         )
 
-@router.websocket("/chat/ws/{model}")
-async def websocket_endpoint(websocket: WebSocket, model: str):
+@router.websocket("/chat/ws")
+async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     while True:
-        user_message = await websocket.receive_text()
-        async for chunk in generate_text_response(json.loads(user_message)):
-            await websocket.send_text(chunk)
+        try:
+            user_message = await websocket.receive_text()
+            async for chunk in await generate_text_response(json.loads(user_message)):
+                await websocket.send_text(chunk)
+        except WebSocketDisconnect:
+            break

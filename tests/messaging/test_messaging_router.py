@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from fastapi.testclient import TestClient
 from src.common.config import settings
+import json
 
 def is_valid_uuid4(uuid_string: str) -> bool:
     try:
@@ -185,3 +186,80 @@ def test_delete_chat_not_found(client: TestClient):
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Chat not found"
+
+
+def test_websocket_chat_endpoint(client: TestClient):
+    chat_payload = {
+        "messages": [
+            {
+                "content": "Hello, please repeat this as is: 'I am a test model!'",
+                "role": "user",
+                "message_type": "text",
+                "media": None,
+                "llm_model": "openrouter/mistralai/devstral-2512:free"
+            }
+        ]
+    }
+    
+    with client.websocket_connect(f"{settings.API_V1_STR}/messaging/chat/ws") as websocket:
+        websocket.send_text(json.dumps(chat_payload))
+        
+        received_chunks = []
+        try:
+            while True:
+                chunk = websocket.receive_text()
+                if chunk.choices[0].finish_reason == "stop":
+                    break
+                received_chunks.append(chunk.choices[0].delta.content)
+        except Exception:
+            pass
+        
+        assert len(received_chunks) > 0, "Expected to receive at least one chunk from the LLM"
+        
+        full_response = "".join(received_chunks)
+        assert "I am a test model!" in full_response, "Expected to receive the expected response from the LLM"
+
+def test_websocket_chat_endpoint_several_messages(client: TestClient):
+    chat_payload = {
+        "messages": [
+            {
+                "content": "Hello, please repeat this as is: 'I am a test model!'",
+                "role": "user",
+                "message_type": "text",
+                "media": None,
+                "llm_model": "openrouter/mistralai/devstral-2512:free"
+            },
+            {
+                "content": "Hi!",
+                "role": "assistant",
+                "message_type": "text",
+                "media": None,
+                "llm_model": "openrouter/mistralai/devstral-2512:free"
+            },
+            {
+                "content": "Now say: 'Bye!'",
+                "role": "user",
+                "message_type": "text",
+                "media": None,
+                "llm_model": "openrouter/mistralai/devstral-2512:free"
+            }
+        ]
+    }
+    
+    with client.websocket_connect(f"{settings.API_V1_STR}/messaging/chat/ws") as websocket:
+        websocket.send_text(json.dumps(chat_payload))
+        
+        received_chunks = []
+        try:
+            while True:
+                chunk = websocket.receive_text()
+                if chunk.choices[0].finish_reason == "stop":
+                    break
+                received_chunks.append(chunk.choices[0].delta.content)
+        except Exception:
+            pass
+        
+        assert len(received_chunks) > 0, "Expected to receive at least one chunk from the LLM"
+        
+        full_response = "".join(received_chunks)
+        assert "Bye!" in full_response, "Expected to receive the expected response from the LLM"
