@@ -33,3 +33,6 @@ def delete_user_by_email(email: str, session: Session) -> bool:
     session.delete(user)
     session.commit()
     return True
+
+def get_users(session: Session) -> list[User]:
+    return list(session.exec(select(User)).all())
