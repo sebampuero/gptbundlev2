@@ -231,7 +231,7 @@ def test_delete_chat(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo)
+    create_chat(chat_in, chat_repo)
     # No need to add to cleanup_chats since we're deleting it
 
     # Verify the chat exists

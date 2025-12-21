@@ -101,7 +101,7 @@ def test_delete_user_by_email_success(session: Session):
     password = "password123"
 
     user_create = UserCreate(email=email, username=username, password=password)
-    user = create_user(user_create, session)
+    create_user(user_create, session)
 
     assert get_user_by_email(email, session) is not None
 
