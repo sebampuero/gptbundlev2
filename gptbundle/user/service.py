@@ -1,6 +1,8 @@
-from .models import UserCreate, UserLogin, User
+from sqlmodel import Session, select
+
 from gptbundle.security.service import get_password_hash, verify_password
-from sqlmodel import Session, select, update
+
+from .models import User, UserCreate, UserLogin
 
 
 def create_user(user_create: UserCreate, session: Session) -> User:
@@ -12,11 +14,14 @@ def create_user(user_create: UserCreate, session: Session) -> User:
     session.refresh(db_obj)
     return db_obj
 
+
 def get_user_by_email(email: str, session: Session) -> User | None:
     return session.exec(select(User).where(User.email == email)).one_or_none()
 
+
 def get_user_by_username(username: str, session: Session) -> User | None:
     return session.exec(select(User).where(User.username == username)).one_or_none()
+
 
 def login(user: UserLogin, session: Session) -> User | None:
     db_user = get_user_by_username(user.username, session)
@@ -26,6 +31,7 @@ def login(user: UserLogin, session: Session) -> User | None:
         return None
     return db_user
 
+
 def delete_user_by_email(email: str, session: Session) -> bool:
     user = get_user_by_email(email, session)
     if not user:
@@ -33,6 +39,7 @@ def delete_user_by_email(email: str, session: Session) -> bool:
     session.delete(user)
     session.commit()
     return True
+
 
 def get_users(session: Session) -> list[User]:
     return list(session.exec(select(User)).all())

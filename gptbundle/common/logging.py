@@ -1,14 +1,15 @@
 import logging
 import sys
-from datetime import datetime
+
 from .config import settings
+
 
 def setup_logging(root_level: str, app_level: str, log_format: str, date_format: str):
     formatter = logging.Formatter(log_format, datefmt=date_format)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(root_level) 
-    
+    root_logger.setLevel(root_level)
+
     root_logger.handlers = []
 
     console_handler = logging.StreamHandler(sys.stdout)

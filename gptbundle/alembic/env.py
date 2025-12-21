@@ -1,8 +1,10 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
 
 from alembic import context
+from sqlalchemy import engine_from_config, pool
+from sqlmodel import SQLModel
+
+from gptbundle.common.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -17,10 +19,6 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from gptbundle.common.config import settings
-
-from sqlmodel import SQLModel
-from gptbundle.user.models import User
 
 target_metadata = SQLModel.metadata
 
@@ -28,6 +26,7 @@ target_metadata = SQLModel.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -42,7 +41,10 @@ def run_migrations_offline():
 
     """
     context.configure(
-        url=str(settings.SQLALCHEMY_DATABASE_URI), target_metadata=target_metadata, literal_binds=True, compare_type=True
+        url=str(settings.sqlalchemy_database_uri),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        compare_type=True,
     )
 
     with context.begin_transaction():
@@ -57,7 +59,7 @@ def run_migrations_online():
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = str(settings.SQLALCHEMY_DATABASE_URI)
+    configuration["sqlalchemy.url"] = str(settings.sqlalchemy_database_uri)
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

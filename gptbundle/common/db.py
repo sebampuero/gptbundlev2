@@ -4,7 +4,7 @@ from sqlmodel import Session, create_engine
 
 from .config import settings
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+engine = create_engine(str(settings.sqlalchemy_database_uri))
 
 
 def get_pg_db() -> Generator[Session, None, None]:

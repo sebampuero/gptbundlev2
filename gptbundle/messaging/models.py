@@ -1,6 +1,12 @@
-from pynamodb.attributes import ListAttribute, MapAttribute, NumberAttribute, UnicodeAttribute
+from pynamodb.attributes import (
+    ListAttribute,
+    MapAttribute,
+    NumberAttribute,
+    UnicodeAttribute,
+)
 from pynamodb.indexes import AllProjection, GlobalSecondaryIndex
 from pynamodb.models import Model
+
 from gptbundle.common.config import settings
 
 

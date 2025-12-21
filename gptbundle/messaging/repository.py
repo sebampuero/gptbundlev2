@@ -1,7 +1,8 @@
-from .models import Chat as ChatModel
-from .schemas import ChatCreate, Chat, MessageCreate
-from typing import List
 from pynamodb.exceptions import DeleteError
+
+from .models import Chat as ChatModel
+from .schemas import Chat, ChatCreate, MessageCreate
+
 
 class ChatRepository:
     def create_chat(self, chat_in: ChatCreate) -> Chat:
@@ -25,8 +26,10 @@ class ChatRepository:
     def get_chats_by_user_email(self, user_email: str) -> list[Chat]:
         chats = ChatModel.user_email_index.query(user_email)
         return [self._create_chat_from_model(chat) for chat in chats]
-    
-    def append_messages(self, chat_id: str, timestamp: float, messages: List[MessageCreate]) -> bool:
+
+    def append_messages(
+        self, chat_id: str, timestamp: float, messages: list[MessageCreate]
+    ) -> bool:
         try:
             chat_model = ChatModel.get(chat_id, timestamp)
             chat_model.messages.extend([msg.model_dump() for msg in messages])
@@ -34,13 +37,13 @@ class ChatRepository:
             return True
         except ChatModel.DoesNotExist:
             return False
-    
+
     def delete_chat(self, chat_id: str, timestamp: float) -> bool:
         try:
             chat_model = ChatModel.get(chat_id, timestamp)
             chat_model.delete()
             return True
-        except (ChatModel.DoesNotExist, DeleteError) as e:
+        except (ChatModel.DoesNotExist, DeleteError):
             return False
 
     def _create_chat_from_model(self, chat_model: ChatModel) -> Chat:
@@ -54,6 +57,8 @@ class ChatRepository:
                     role=msg.role,
                     message_type=msg.message_type,
                     media=msg.media,
-                    llm_model=msg.llm_model) for msg in chat_model.messages
+                    llm_model=msg.llm_model,
+                )
+                for msg in chat_model.messages
             ],
         )

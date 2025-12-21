@@ -1,6 +1,7 @@
-from sqlmodel import Field, SQLModel
 import uuid
+
 from pydantic import EmailStr
+from sqlmodel import Field, SQLModel
 
 
 class UserBase(SQLModel):

@@ -1,9 +1,11 @@
-from typing import Any, Annotated
-from fastapi import Depends, APIRouter, HTTPException
-from gptbundle.common.db import get_pg_db
-from sqlmodel import Session
-from .models import UserResponse, UserCreate, UserRegister, UserLogin, User
+from typing import Annotated, Any
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session
+
+from gptbundle.common.db import get_pg_db
+
+from .models import UserCreate, UserLogin, UserRegister, UserResponse
 from .service import create_user, get_user_by_email, get_user_by_username, login
 
 router = APIRouter()
