@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     )
 
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "GPTBundle"
+    PROJECT_NAME: str = "gptbundle"
     POSTGRES_HOST: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     AWS_REGION: str = "eu-central-1"
     AWS_ENDPOINT_URL_DYNAMODB: str | None = None
 
-    LOG_LEVEL: str = "INFO"
+    ROOT_LOG_LEVEL: str = "INFO"
+    APP_LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 

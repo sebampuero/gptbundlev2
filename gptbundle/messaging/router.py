@@ -93,7 +93,7 @@ async def websocket_text_generation_endpoint(websocket: WebSocket, chat_repo: Ch
 
             if active_chat_id is None and active_timestamp is None:
                 try:
-                    logger.info(f"Creating new chat for user: {data.get('user_email')}")
+                    logger.debug(f"Creating new chat for user: {data.get('user_email')}")
                     chat_in = ChatCreate(
                         user_email=data.get("user_email"),
                         messages=[MessageCreate.model_validate(m) for m in data["messages"]]
@@ -101,7 +101,7 @@ async def websocket_text_generation_endpoint(websocket: WebSocket, chat_repo: Ch
                     chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
                     active_chat_id = chat.chat_id
                     active_timestamp = chat.timestamp
-                    logger.info(f"Created new chat for user: {data.get('user_email')} with chat_id: {active_chat_id} and timestamp: {active_timestamp}")
+                    logger.debug(f"Created new chat for user: {data.get('user_email')} with chat_id: {active_chat_id} and timestamp: {active_timestamp}")
                     await websocket.send_json(WebSocketMessage(
                         type=WebSocketMessageType.NEW_CHAT, 
                         chat_id=active_chat_id, 
@@ -135,7 +135,7 @@ async def websocket_text_generation_endpoint(websocket: WebSocket, chat_repo: Ch
                         await websocket.send_json(WebSocketMessage(type=WebSocketMessageType.TOKEN, content=token).model_dump())
                 
                 append_messages(chat_repo=chat_repo, chat_id=active_chat_id, timestamp=active_timestamp, messages=[ai_message])
-                logger.info(f"Appended AI message to chat: {active_chat_id} and timestamp: {active_timestamp}")
+                logger.debug(f"Appended AI message to chat: {active_chat_id} and timestamp: {active_timestamp}")
                 await websocket.send_json(WebSocketMessage(type=WebSocketMessageType.STREAM_FINISHED).model_dump())
                 
             except Exception as e:
@@ -143,10 +143,10 @@ async def websocket_text_generation_endpoint(websocket: WebSocket, chat_repo: Ch
                 await websocket.send_json(WebSocketMessage(type=WebSocketMessageType.ERROR, content=f"LLM Error: {str(e)}").model_dump())
 
         except WebSocketDisconnect:
-            logger.info("WebSocket disconnected")
+            logger.debug(f"WebSocket {websocket.client} disconnected")
             break
         except Exception as e:
-            logger.error(f"Unexpected error in websocket: {e}")
+            logger.error(f"Unexpected error in websocket {websocket.client}: {e}")
             try:
                 await websocket.send_json(WebSocketMessage(type=WebSocketMessageType.ERROR, content="Internal server error").model_dump())
             except:
