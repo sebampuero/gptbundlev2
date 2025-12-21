@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlmodel import Session
-from src.user.models import User
-from src.common.config import settings
+from gptbundle.user.models import User
+from gptbundle.common.config import settings
 
 def test_register_user_success(client: TestClient, cleanup_users: list[int]):
     response = client.post(
@@ -20,8 +20,8 @@ def test_register_user_success(client: TestClient, cleanup_users: list[int]):
     cleanup_users.append(content["id"])
 
 def test_register_user_duplicate_email(client: TestClient, session: Session, cleanup_users: list[int]):
-    from src.user.service import create_user
-    from src.user.models import UserCreate
+    from gptbundle.user.service import create_user
+    from gptbundle.user.models import UserCreate
     
     user_in = UserCreate(
         email="duplicate@example.com",
@@ -43,8 +43,8 @@ def test_register_user_duplicate_email(client: TestClient, session: Session, cle
     assert response.json()["detail"] == "The user with this email already exists in the system"
 
 def test_login_user_success(client: TestClient, session: Session, cleanup_users: list[int]):
-    from src.user.service import create_user
-    from src.user.models import UserCreate
+    from gptbundle.user.service import create_user
+    from gptbundle.user.models import UserCreate
     
     user_in = UserCreate(
         email="login_test@example.com",

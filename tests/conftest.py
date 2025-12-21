@@ -1,6 +1,6 @@
 import pytest
 from sqlmodel import Session
-from src.common.db import engine
+from gptbundle.common.db import engine
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def cleanup_users_fixture(session: Session):
     if not user_ids:
         return
         
-    from src.user.models import User
+    from gptbundle.user.models import User
     from sqlmodel import delete
     
     for user_id in user_ids:
@@ -41,8 +41,8 @@ def client_fixture(session: Session):
     Fixture to provide a TestClient with overridden database dependency.
     """
     from fastapi.testclient import TestClient
-    from src.main import app
-    from src.common.db import get_pg_db
+    from gptbundle.main import app
+    from gptbundle.common.db import get_pg_db
 
     def get_session_override():
         return session
@@ -68,7 +68,7 @@ def cleanup_chats_fixture():
     if not chat_keys:
         return
         
-    from src.messaging.models import Chat
+    from gptbundle.messaging.models import Chat
     
     for chat_id, timestamp in chat_keys:
          try:

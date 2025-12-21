@@ -1,8 +1,8 @@
 from datetime import datetime
 import pytest
-from src.messaging.service import create_chat, get_chat, get_chats_by_user_email, append_messages, delete_chat
-from src.messaging.schemas import ChatCreate, MessageCreate, MessageRole
-from src.messaging.repository import ChatRepository
+from gptbundle.messaging.service import create_chat, get_chat, get_chats_by_user_email, append_messages, delete_chat
+from gptbundle.messaging.schemas import ChatCreate, MessageCreate, MessageRole
+from gptbundle.messaging.repository import ChatRepository
 
 def test_create_chat(cleanup_chats: list):
     chat_repo = ChatRepository()

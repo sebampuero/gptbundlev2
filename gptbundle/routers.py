@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from src.user.router import router as user_router
-from src.messaging.router import router as messaging_router
+from gptbundle.user.router import router as user_router
+from gptbundle.messaging.router import router as messaging_router
 
 api_router = APIRouter()
 

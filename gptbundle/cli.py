@@ -1,13 +1,13 @@
 import typer
-from src.user.service import (
+from gptbundle.user.service import (
     create_user as service_create_user, 
     delete_user_by_email as service_delete_user,
     get_users as service_get_users
 )
-from src.user.models import UserCreate
-from src.common.db import get_pg_db
-from src.messaging.models import Chat as ChatModel
-from src.messaging.repository import ChatRepository
+from gptbundle.user.models import UserCreate
+from gptbundle.common.db import get_pg_db
+from gptbundle.messaging.models import Chat as ChatModel
+from gptbundle.messaging.repository import ChatRepository
 from rich.console import Console
 from rich.table import Table
 from datetime import datetime

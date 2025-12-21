@@ -1,6 +1,6 @@
 from typing import Any, Annotated
 from fastapi import Depends, APIRouter, HTTPException
-from src.common.db import get_pg_db
+from gptbundle.common.db import get_pg_db
 from sqlmodel import Session
 from .models import UserResponse, UserCreate, UserRegister, UserLogin, User
 

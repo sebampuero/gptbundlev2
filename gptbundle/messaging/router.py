@@ -1,7 +1,7 @@
 from typing import Any, Annotated, List
 from fastapi import Depends, APIRouter, HTTPException, WebSocket
-from src.common.db import get_pg_db
-from src.llm.service import generate_text_response
+from gptbundle.common.db import get_pg_db
+from gptbundle.llm.service import generate_text_response
 from .service import create_chat, get_chat, get_chats_by_user_email, append_messages, delete_chat
 from .repository import ChatRepository
 from .schemas import ChatCreate, Chat, MessageCreate, WebSocketMessage, MessageRole, WebSocketMessageType

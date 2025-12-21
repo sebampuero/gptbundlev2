@@ -20,4 +20,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 COPY . .
 
-ENTRYPOINT ["sh", "src/entrypoint.sh"]
+ENTRYPOINT ["sh", "gptbundle/entrypoint.sh"]

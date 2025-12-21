@@ -1,7 +1,7 @@
 from pynamodb.attributes import ListAttribute, MapAttribute, NumberAttribute, UnicodeAttribute
 from pynamodb.indexes import AllProjection, GlobalSecondaryIndex
 from pynamodb.models import Model
-from src.common.config import settings
+from gptbundle.common.config import settings
 
 
 class UserEmailIndex(GlobalSecondaryIndex):

@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 from fastapi.testclient import TestClient
-from src.common.config import settings
+from gptbundle.common.config import settings
 import json
-from src.messaging.schemas import MessageRole, WebSocketMessage, WebSocketMessageType
+from gptbundle.messaging.schemas import MessageRole, WebSocketMessage, WebSocketMessageType
 
 def is_valid_uuid4(uuid_string: str) -> bool:
     try:

@@ -17,10 +17,10 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from src.common.config import settings
+from gptbundle.common.config import settings
 
 from sqlmodel import SQLModel
-from src.user.models import User
+from gptbundle.user.models import User
 
 target_metadata = SQLModel.metadata
 

@@ -1,4 +1,4 @@
-from src.security.service import get_password_hash, pwd_context
+from gptbundle.security.service import get_password_hash, pwd_context
 
 def test_get_password_hash_structure():
     password = "supersecretpassword"

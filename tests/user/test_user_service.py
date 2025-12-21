@@ -1,6 +1,6 @@
 from sqlmodel import Session
-from src.user.service import create_user, get_user_by_email, get_user_by_username, login, delete_user_by_email
-from src.user.models import UserCreate, UserLogin
+from gptbundle.user.service import create_user, get_user_by_email, get_user_by_username, login, delete_user_by_email
+from gptbundle.user.models import UserCreate, UserLogin
 import pytest
 
 def test_create_user(session: Session, cleanup_users: list):

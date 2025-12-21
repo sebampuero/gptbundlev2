@@ -27,7 +27,7 @@ testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["gptbundle*"]
 
 [project.scripts]
-admin-cli = "src.cli:app"
+admin-cli = "gptbundle.cli:app"
