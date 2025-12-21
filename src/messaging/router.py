@@ -76,11 +76,12 @@ def remove_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) ->
         )
 
 @router.websocket("/chat/text_ws/{chat_id}/{timestamp}")
-async def websocket_endpoint(websocket: WebSocket, chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float):
+async def websocket_text_generation_endpoint(websocket: WebSocket, chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float):
+    """This websocket endpoint handles the text generation for a chat."""
     await websocket.accept()
     
     active_chat_id = None if chat_id == "new" else chat_id
-    active_timestamp = None if timestamp == "new" else timestamp
+    active_timestamp = None if timestamp == 0 else timestamp
 
     while True:
         try:
@@ -92,6 +93,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_repo: ChatRepositoryDep,
 
             if active_chat_id is None and active_timestamp is None:
                 try:
+                    logger.info(f"Creating new chat for user: {data.get('user_email')}")
                     chat_in = ChatCreate(
                         user_email=data.get("user_email"),
                         messages=[MessageCreate.model_validate(m) for m in data["messages"]]
@@ -99,8 +101,9 @@ async def websocket_endpoint(websocket: WebSocket, chat_repo: ChatRepositoryDep,
                     chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
                     active_chat_id = chat.chat_id
                     active_timestamp = chat.timestamp
+                    logger.info(f"Created new chat for user: {data.get('user_email')} with chat_id: {active_chat_id} and timestamp: {active_timestamp}")
                     await websocket.send_json(WebSocketMessage(
-                        type=WebSocketMessageType.CHAT_CREATED, 
+                        type=WebSocketMessageType.NEW_CHAT, 
                         chat_id=active_chat_id, 
                         timestamp=active_timestamp
                     ).model_dump())
@@ -132,7 +135,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_repo: ChatRepositoryDep,
                         await websocket.send_json(WebSocketMessage(type=WebSocketMessageType.TOKEN, content=token).model_dump())
                 
                 append_messages(chat_repo=chat_repo, chat_id=active_chat_id, timestamp=active_timestamp, messages=[ai_message])
-                
+                logger.info(f"Appended AI message to chat: {active_chat_id} and timestamp: {active_timestamp}")
                 await websocket.send_json(WebSocketMessage(type=WebSocketMessageType.STREAM_FINISHED).model_dump())
                 
             except Exception as e:

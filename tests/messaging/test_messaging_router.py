@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 from src.common.config import settings
 import json
+from src.messaging.schemas import MessageRole, WebSocketMessage, WebSocketMessageType
 
 def is_valid_uuid4(uuid_string: str) -> bool:
     try:
@@ -18,7 +19,7 @@ def test_new_chat_success(client: TestClient, cleanup_chats: list):
         f"{settings.API_V1_STR}/messaging/chat",
         json={
             "user_email": user_email,
-            "messages": [{"content": "Hello API", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
+            "messages": [{"content": "Hello API", "role": MessageRole.USER, "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     assert response.status_code == 200
@@ -44,7 +45,7 @@ def test_retrieve_chat_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"content": "Found me", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
+            "messages": [{"content": "Found me", "role": MessageRole.USER, "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append((chat_id, timestamp))
@@ -79,7 +80,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
             "chat_id": "chat_1",
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"content": "Msg 1", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
+            "messages": [{"content": "Msg 1", "role": MessageRole.USER, "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append(("chat_1", timestamp))
@@ -90,7 +91,7 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
             "chat_id": "chat_2",
             "timestamp": timestamp + 1,
             "user_email": user_email,
-            "messages": [{"content": "Msg 2", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
+            "messages": [{"content": "Msg 2", "role": MessageRole.USER, "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     cleanup_chats.append(("chat_2", timestamp + 1))
@@ -111,43 +112,6 @@ def test_retrieve_chats_not_found(client: TestClient):
     assert response.status_code == 404
     assert response.json()["detail"] == "Chats not found"
 
-def test_append_messages_success(client: TestClient, cleanup_chats: list):
-    chat_id = "test_append_api_chat"
-    timestamp = datetime.now().timestamp()
-    user_email = "test_append_api@example.com"
-    
-    # Create chat first with one message
-    client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "chat_id": chat_id,
-            "timestamp": timestamp,
-            "user_email": user_email,
-            "messages": [{"content": "First message", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
-        },
-    )
-    cleanup_chats.append((chat_id, timestamp))
-    
-    # Append a new message
-    append_response = client.put(
-        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
-        json=[{"content": "Second message", "role": "ai", "message_type": "text", "llm_model": "gpt4"}]
-    )
-    
-    assert append_response.status_code == 200
-    
-    # Retrieve it
-    response = client.get(
-        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
-    )
-    assert response.status_code == 200
-    content = response.json()
-    assert content["chat_id"] == chat_id
-    assert len(content["messages"]) == 2
-    assert content["messages"][0]["content"] == "First message"
-    assert content["messages"][1]["content"] == "Second message"
-    assert content["messages"][1]["role"] == "ai"
-
 def test_delete_chat_success(client: TestClient, cleanup_chats: list):
     chat_id = "test_delete_api_chat"
     timestamp = datetime.now().timestamp()
@@ -160,7 +124,7 @@ def test_delete_chat_success(client: TestClient, cleanup_chats: list):
             "chat_id": chat_id,
             "timestamp": timestamp,
             "user_email": user_email,
-            "messages": [{"content": "To be deleted", "role": "human", "message_type": "text", "llm_model": "gpt4"}]
+            "messages": [{"content": "To be deleted", "role": MessageRole.USER, "message_type": "text", "llm_model": "gpt4"}]
         },
     )
     # No need to add to cleanup_chats since we're deleting it
@@ -188,78 +152,101 @@ def test_delete_chat_not_found(client: TestClient):
     assert response.json()["detail"] == "Chat not found"
 
 
-def test_websocket_chat_endpoint(client: TestClient):
+def test_websocket_chat_endpoint_first_connection(client: TestClient, cleanup_chats: list):
     chat_payload = {
+        "user_email": "test@email.com",
         "messages": [
             {
                 "content": "Hello, please repeat this as is: 'I am a test model!'",
-                "role": "user",
+                "role": MessageRole.USER,
                 "message_type": "text",
                 "media": None,
                 "llm_model": "openrouter/mistralai/devstral-2512:free"
             }
         ]
     }
-    
-    with client.websocket_connect(f"{settings.API_V1_STR}/messaging/chat/ws") as websocket:
-        websocket.send_text(json.dumps(chat_payload))
-        
-        received_chunks = []
-        try:
-            while True:
-                chunk = websocket.receive_text()
-                if chunk.choices[0].finish_reason == "stop":
-                    break
-                received_chunks.append(chunk.choices[0].delta.content)
-        except Exception:
-            pass
-        
-        assert len(received_chunks) > 0, "Expected to receive at least one chunk from the LLM"
-        
-        full_response = "".join(received_chunks)
-        assert "I am a test model!" in full_response, "Expected to receive the expected response from the LLM"
+    total_response = ""
 
-def test_websocket_chat_endpoint_several_messages(client: TestClient):
+    with client.websocket_connect(f"{settings.API_V1_STR}/messaging/chat/text_ws/new/0") as websocket:
+        websocket.send_json(chat_payload)
+        while True:
+            message = websocket.receive_json()
+            ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
+
+            if ws_msg.type == WebSocketMessageType.NEW_CHAT:
+                assert is_valid_uuid4(ws_msg.chat_id)
+                assert ws_msg.timestamp > 0
+                cleanup_chats.append((ws_msg.chat_id, ws_msg.timestamp))
+            elif ws_msg.type == WebSocketMessageType.TOKEN:
+                total_response += ws_msg.content
+            elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
+                break
+            elif ws_msg.type == WebSocketMessageType.ERROR:
+                pytest.fail(f"Websocket error: {ws_msg.content}")
+        
+    assert "I am a test model!" in total_response
+
+
+def test_websocket_chat_endpoint_existing_chat_several_messages(client: TestClient, cleanup_chats: list):
+    chat_id = "some_test_id"
+    timestamp = datetime.now().timestamp()
+    user_email = "test@email.com"
+    create_response = client.post(
+        f"{settings.API_V1_STR}/messaging/chat",
+        json={
+            "chat_id": chat_id,
+            "timestamp": timestamp,
+            "user_email": user_email,
+            "messages": [{"content": "Dummy", "role": MessageRole.USER, "message_type": "text", "llm_model": "gpt4"}]
+        },
+    )
+    cleanup_chats.append((chat_id, timestamp))
     chat_payload = {
+        "user_email": user_email,
         "messages": [
             {
                 "content": "Hello, please repeat this as is: 'I am a test model!'",
-                "role": "user",
+                "role": MessageRole.USER,
                 "message_type": "text",
                 "media": None,
                 "llm_model": "openrouter/mistralai/devstral-2512:free"
             },
             {
-                "content": "Hi!",
-                "role": "assistant",
+                "content": "I am a test model!",
+                "role": MessageRole.ASSISTANT,
                 "message_type": "text",
                 "media": None,
                 "llm_model": "openrouter/mistralai/devstral-2512:free"
             },
             {
-                "content": "Now say: 'Bye!'",
-                "role": "user",
+                "content": "Now say 'Bye!'",
+                "role": MessageRole.USER,
                 "message_type": "text",
                 "media": None,
                 "llm_model": "openrouter/mistralai/devstral-2512:free"
             }
         ]
     }
-    
-    with client.websocket_connect(f"{settings.API_V1_STR}/messaging/chat/ws") as websocket:
-        websocket.send_text(json.dumps(chat_payload))
+    total_response = ""
+
+    with client.websocket_connect(f"{settings.API_V1_STR}/messaging/chat/text_ws/{chat_id}/{timestamp}") as websocket:
+        websocket.send_json(chat_payload)
+        while True:
+            message = websocket.receive_json()
+            ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
+            assert ws_msg.type != WebSocketMessageType.NEW_CHAT
+            if ws_msg.type == WebSocketMessageType.TOKEN:
+                total_response += ws_msg.content
+            elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
+                break
+            elif ws_msg.type == WebSocketMessageType.ERROR:
+                pytest.fail(f"Websocket error: {ws_msg.content}")
         
-        received_chunks = []
-        try:
-            while True:
-                chunk = websocket.receive_text()
-                if chunk.choices[0].finish_reason == "stop":
-                    break
-                received_chunks.append(chunk.choices[0].delta.content)
-        except Exception:
-            pass
-        
-        assert len(received_chunks) > 0, "Expected to receive at least one chunk from the LLM"
-        
-        full_response = "".join(received_chunks)
-        assert "Bye!" in full_response, "Expected to receive the expected response from the LLM"
+    assert "Bye!" in total_response
+
+    response = client.get(
+        f"{settings.API_V1_STR}/messaging/chats/{user_email}",
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert len(content) == 1 # should exist only one chat and not have created two

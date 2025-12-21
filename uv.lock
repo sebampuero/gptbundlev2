@@ -691,7 +691,9 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "pydantic-settings" },
     { name = "pynamodb" },
+    { name = "rich" },
     { name = "sqlmodel" },
+    { name = "typer" },
     { name = "websockets" },
 ]
 
@@ -709,7 +711,9 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "pynamodb", specifier = ">=6.1.0" },
+    { name = "rich", specifier = ">=13.9.4" },
     { name = "sqlmodel", specifier = ">=0.0.27" },
+    { name = "typer", specifier = ">=0.15.1" },
     { name = "websockets", specifier = ">=15.0.1" },
 ]
 
