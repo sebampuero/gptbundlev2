@@ -1,7 +1,9 @@
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from gptbundle.security.service import get_password_hash, verify_password
 
+from .exceptions import UserAlreadyExistsError
 from .models import User, UserCreate, UserLogin
 
 
@@ -10,7 +12,11 @@ def create_user(user_create: UserCreate, session: Session) -> User:
         user_create, update={"hashed_password": get_password_hash(user_create.password)}
     )
     session.add(db_obj)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        raise UserAlreadyExistsError() from e
     session.refresh(db_obj)
     return db_obj
 

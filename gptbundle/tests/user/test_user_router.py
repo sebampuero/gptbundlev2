@@ -42,10 +42,7 @@ def test_register_user_duplicate_email(
         },
     )
     assert response.status_code == 409
-    assert (
-        response.json()["detail"]
-        == "The user with this email already exists in the system"
-    )
+    assert response.json()["detail"] == "Username or email is already taken."
 
 
 def test_login_user_success(

@@ -5,8 +5,9 @@ from sqlmodel import Session
 
 from gptbundle.common.db import get_pg_db
 
+from .exceptions import UserAlreadyExistsError
 from .models import UserCreate, UserLogin, UserRegister, UserResponse
-from .service import create_user, get_user_by_email, login
+from .service import create_user, login
 
 router = APIRouter()
 
@@ -16,19 +17,17 @@ SessionDep = Annotated[Session, Depends(get_pg_db)]
 @router.post(
     "/register",
     response_model=UserResponse,
-    responses={
-        409: {"description": "User with this email already exists in the system"}
-    },
+    responses={409: {"description": "Username or email is already taken."}},
 )
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
-    user = get_user_by_email(session=session, email=user_in.email)
-    if user:
+    user_create = UserCreate.model_validate(user_in)
+    try:
+        user = create_user(session=session, user_create=user_create)
+    except UserAlreadyExistsError as e:
         raise HTTPException(
             status_code=409,
-            detail="The user with this email already exists in the system",
-        )
-    user_create = UserCreate.model_validate(user_in)
-    user = create_user(session=session, user_create=user_create)
+            detail="Username or email is already taken.",
+        ) from e
     return user
 
 
