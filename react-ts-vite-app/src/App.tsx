@@ -1,11 +1,19 @@
 import { Flex } from '@chakra-ui/react';
-import { LoginForm } from './features/auth/components/LoginForm';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 
 function App() {
   return (
-    <Flex minH="100vh" align="center" justify="center" bg="gray.50">
-      <LoginForm />
-    </Flex>
+    <Router>
+      <Flex minH="100vh" w="100%" align="center" justify="center" bg="gray.50">
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Flex>
+    </Router>
   );
 }
 

@@ -46,11 +46,10 @@ export const LoginForm: React.FC = () => {
                     </Field.Root>
 
                     <Button
-                        colorScheme="blue"
+                        colorPalette="blue"
                         size="lg"
                         width="full"
                         mt={4}
-                        _hover={{ bg: 'blue.600' }}
                     >
                         Login
                     </Button>
