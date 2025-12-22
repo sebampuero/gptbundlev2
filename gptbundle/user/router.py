@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +13,7 @@ from .service import create_user, login
 router = APIRouter()
 
 SessionDep = Annotated[Session, Depends(get_pg_db)]
+logger = logging.getLogger(__name__)
 
 
 @router.post(

@@ -21,13 +21,18 @@ def create_user(user_create: UserCreate, session: Session) -> User:
     return db_obj
 
 
-def get_user_by_email(email: str, session: Session) -> User | None:
-    return session.exec(select(User).where(User.email == email)).one_or_none()
+def get_user_by_email(
+    email: str, session: Session, include_inactive: bool = False
+) -> User | None:
+    statement = select(User).where(User.email == email)
+    if not include_inactive:
+        statement = statement.where(User.is_active)
+    return session.exec(statement).one_or_none()
 
 
 def get_user_by_username(username: str, session: Session) -> User | None:
     return session.exec(
-        select(User).where(User.username == username and User.is_active)
+        select(User).where(User.username == username, User.is_active)
     ).one_or_none()
 
 
@@ -45,6 +50,26 @@ def delete_user_by_email(email: str, session: Session) -> bool:
     if not user:
         return False
     session.delete(user)
+    session.commit()
+    return True
+
+
+def deactivate_user(email: str, session: Session) -> bool:
+    user = get_user_by_email(email, session)
+    if not user:
+        return False
+    user.is_active = False
+    session.add(user)
+    session.commit()
+    return True
+
+
+def activate_user(email: str, session: Session) -> bool:
+    user = get_user_by_email(email, session, include_inactive=True)
+    if not user:
+        return False
+    user.is_active = True
+    session.add(user)
     session.commit()
     return True
 

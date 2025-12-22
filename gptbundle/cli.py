@@ -9,7 +9,13 @@ from gptbundle.messaging.models import Chat as ChatModel
 from gptbundle.messaging.repository import ChatRepository
 from gptbundle.user.models import UserCreate
 from gptbundle.user.service import (
+    activate_user as service_activate_user,
+)
+from gptbundle.user.service import (
     create_user as service_create_user,
+)
+from gptbundle.user.service import (
+    deactivate_user as service_deactivate_user,
 )
 from gptbundle.user.service import (
     delete_user_by_email as service_delete_user,
@@ -64,6 +70,44 @@ def delete_user(
             console.print(f"[yellow]User with email {email} not found.[/yellow]")
     except Exception as e:
         console.print(f"[red]Error deleting user:[/red] {e}")
+
+
+@app.command()
+def deactivate_user(
+    email: str = typer.Argument(..., help="The email of the user to deactivate"),
+):
+    db_gen = get_pg_db()
+    session = next(db_gen)
+
+    try:
+        success = service_deactivate_user(email=email, session=session)
+        if success:
+            console.print(
+                f"[green]Successfully deactivated user with email:[/green] {email}"
+            )
+        else:
+            console.print(f"[yellow]User with email {email} not found.[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error deactivating user:[/red] {e}")
+
+
+@app.command()
+def activate_user(
+    email: str = typer.Argument(..., help="The email of the user to activate"),
+):
+    db_gen = get_pg_db()
+    session = next(db_gen)
+
+    try:
+        success = service_activate_user(email=email, session=session)
+        if success:
+            console.print(
+                f"[green]Successfully activated user with email:[/green] {email}"
+            )
+        else:
+            console.print(f"[yellow]User with email {email} not found.[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error activating user:[/red] {e}")
 
 
 @app.command()

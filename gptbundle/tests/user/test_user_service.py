@@ -2,7 +2,9 @@ from sqlmodel import Session
 
 from gptbundle.user.models import UserCreate, UserLogin
 from gptbundle.user.service import (
+    activate_user,
     create_user,
+    deactivate_user,
     delete_user_by_email,
     get_user_by_email,
     get_user_by_username,
@@ -114,3 +116,43 @@ def test_delete_user_by_email_success(session: Session):
 def test_delete_user_by_email_not_found(session: Session):
     result = delete_user_by_email("nonexistent@example.com", session)
     assert result is False
+
+
+def test_deactivate_user(session: Session, cleanup_users: list):
+    email = "test_deactivate@example.com"
+    username = "test_deactivate_user"
+    password = "password123"
+
+    user_create = UserCreate(email=email, username=username, password=password)
+    user = create_user(user_create, session)
+    cleanup_users.append(user.id)
+
+    assert user.is_active is True
+
+    result = deactivate_user(email, session)
+    assert result is True
+
+    db_user = get_user_by_email(email, session)
+    assert db_user is None
+
+
+def test_activate_user(session: Session, cleanup_users: list):
+    email = "test_reactivate@example.com"
+    username = "test_reactivate_user"
+    password = "password123"
+
+    user_create = UserCreate(email=email, username=username, password=password)
+    user = create_user(user_create, session)
+    cleanup_users.append(user.id)
+
+    # Deactivate
+    deactivate_user(email, session)
+    assert get_user_by_email(email, session) is None
+
+    # Reactivate
+    result = activate_user(email, session)
+    assert result is True
+
+    db_user = get_user_by_email(email, session)
+    assert db_user is not None
+    assert db_user.is_active is True
