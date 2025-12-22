@@ -6,7 +6,7 @@ from sqlmodel import Session
 from gptbundle.common.db import get_pg_db
 
 from .models import UserCreate, UserLogin, UserRegister, UserResponse
-from .service import create_user, get_user_by_email, get_user_by_username, login
+from .service import create_user, get_user_by_email, login
 
 router = APIRouter()
 
@@ -35,16 +35,13 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 @router.post(
     "/login",
     response_model=UserResponse,
-    responses={
-        404: {"description": "User with this username does not exist in the system"}
-    },
+    responses={403: {"description": "Invalid username or password"}},
 )
 def login_user(session: SessionDep, user_in: UserLogin) -> Any:
-    user = get_user_by_username(session=session, username=user_in.username)
+    user = login(session=session, user=user_in)
     if not user:
         raise HTTPException(
-            status_code=404,
-            detail="The user with this username does not exist in the system",
+            status_code=403,
+            detail="Invalid username or password",
         )
-    user = login(session=session, user=user_in)
     return user
