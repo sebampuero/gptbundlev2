@@ -19,17 +19,17 @@ export const ChatListItem = ({ title, lastMessage, timestamp }: ChatListItemProp
             position="relative"
             role="group"
         >
-            <VStack align="start" spacing={1}>
+            <VStack align="start">
                 <Text fontSize="xs" color="gray.500">
                     {timestamp}
                 </Text>
-                <Text fontWeight="semibold" fontSize="sm" noOfLines={1}>
+                <Text fontWeight="semibold" fontSize="sm">
                     {title}
                 </Text>
                 <HStack width="full" justify="space-between">
                     <IconButton
                         aria-label="Delete chat"
-                        icon={<LuTrash2 size={16} />}
+                        as={LuTrash2}
                         size="xs"
                         variant="ghost"
                         color="gray.400"

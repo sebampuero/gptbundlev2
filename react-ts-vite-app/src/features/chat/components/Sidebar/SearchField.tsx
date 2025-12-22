@@ -1,20 +1,27 @@
-import { Input, InputGroup, InputLeftElement } from "@chakra-ui/react";
+import { Box, Input } from "@chakra-ui/react";
 import { LuSearch } from "react-icons/lu";
 
 export const SearchField = () => {
     return (
-        <InputGroup size="md" mb={4}>
-            <InputLeftElement pointerEvents="none">
-                <LuSearch color="gray.300" />
-            </InputLeftElement>
+        <Box position="relative" mb={4}>
+            <Box
+                position="absolute"
+                left="3"
+                top="50%"
+                transform="translateY(-50%)"
+                zIndex="1"
+                pointerEvents="none"
+            >
+                <LuSearch color="gray" />
+            </Box>
             <Input
                 placeholder="Search chats..."
                 bg="white"
-                _placeholder={{ color: "gray.400" }}
+                paddingLeft="10"
                 borderRadius="md"
                 border="1px solid"
                 borderColor="gray.200"
             />
-        </InputGroup>
+        </Box>
     );
 };

@@ -1,32 +1,13 @@
-import { Box, VStack, Heading, Button, IconButton, HStack, Input } from "@chakra-ui/react";
-import { LuChevronDown, LuSearch } from "react-icons/lu";
+import { Box, VStack, Heading, Button, HStack, IconButton } from "@chakra-ui/react";
+import { LuChevronDown, LuPanelLeftClose } from "react-icons/lu";
+import { SearchField } from "./SearchField";
+import { ChatListItem } from "./ChatListItem";
 
-export const SearchField = () => {
-    return (
-        <Box position="relative" mb={4}>
-            <Box
-                position="absolute"
-                left="3"
-                top="50%"
-                transform="translateY(-50%)"
-                zIndex="1"
-                pointerEvents="none"
-            >
-                <LuSearch color="gray" />
-            </Box>
-            <Input
-                placeholder="Search chats..."
-                bg="white"
-                paddingLeft="10"
-                borderRadius="md"
-                border="1px solid"
-                borderColor="gray.200"
-            />
-        </Box>
-    );
-};
+interface SidebarProps {
+    onToggle: () => void;
+}
 
-export const Sidebar = () => {
+export const Sidebar = ({ onToggle }: SidebarProps) => {
     return (
         <Box
             width="300px"
@@ -38,12 +19,22 @@ export const Sidebar = () => {
             display="flex"
             flexDirection="column"
         >
-            <Heading size="md" mb={4}>
-                Chats
-            </Heading>
+            <HStack mb={4} justifyContent="space-between" alignItems="center">
+                <Heading size="md">Chats</Heading>
+                <IconButton
+                    aria-label="Hide sidebar"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggle}
+                >
+                    <LuPanelLeftClose />
+                </IconButton>
+            </HStack>
             <SearchField />
             <VStack align="stretch" gap={0} flex={1} overflowY="auto">
-                {/* Empty sidepanel as requested */}
+                <ChatListItem id="1" title="Chat 1" lastMessage="Last message" timestamp="12:34" />
+                <ChatListItem id="2" title="Chat 2" lastMessage="Last message" timestamp="12:34" />
+                <ChatListItem id="3" title="Chat 3" lastMessage="Last message" timestamp="12:34" />
             </VStack>
             <Button
                 variant="ghost"
