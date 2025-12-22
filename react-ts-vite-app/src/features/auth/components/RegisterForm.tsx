@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     Box,
     Button,
@@ -10,8 +9,33 @@ import {
     Link,
     Container,
 } from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 
 export const RegisterForm: React.FC = () => {
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            await authService.register({ username, email, password });
+            navigate('/login');
+        } catch (err: any) {
+            setError(err.message || 'Registration failed. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <Container maxW="lg" centerContent py={10}>
             <Box
@@ -23,11 +47,19 @@ export const RegisterForm: React.FC = () => {
                 boxShadow="lg"
                 border="1px"
                 borderColor="gray.100"
+                as="form"
+                onSubmit={handleSubmit}
             >
                 <VStack gap={6} align="stretch">
                     <Heading as="h2" size="xl" textAlign="center" mb={4} fontWeight="bold">
                         Create Account
                     </Heading>
+
+                    {error && (
+                        <Text color="red.500" fontSize="sm" textAlign="center">
+                            {error}
+                        </Text>
+                    )}
 
                     {/* Username Field */}
                     <Field.Root>
@@ -35,6 +67,9 @@ export const RegisterForm: React.FC = () => {
                         <Input
                             type="text"
                             placeholder="Choose a username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
                         />
                     </Field.Root>
 
@@ -44,6 +79,9 @@ export const RegisterForm: React.FC = () => {
                         <Input
                             type="email"
                             placeholder="Enter email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
                         />
                     </Field.Root>
 
@@ -53,6 +91,9 @@ export const RegisterForm: React.FC = () => {
                         <Input
                             type="password"
                             placeholder="Create password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
                         />
                     </Field.Root>
 
@@ -61,6 +102,8 @@ export const RegisterForm: React.FC = () => {
                         size="lg"
                         width="full"
                         mt={4}
+                        type="submit"
+                        loading={isLoading}
                     >
                         Sign Up
                     </Button>

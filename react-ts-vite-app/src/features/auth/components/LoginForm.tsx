@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     Box,
     Button,
@@ -10,8 +9,32 @@ import {
     Link,
     Container,
 } from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 
 export const LoginForm: React.FC = () => {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            await authService.login({ username, password });
+            navigate('/chat');
+        } catch (err: any) {
+            setError(err.message || 'Check your credentials and try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <Container maxW="lg" centerContent py={10}>
             <Box
@@ -23,17 +46,28 @@ export const LoginForm: React.FC = () => {
                 boxShadow="lg"
                 border="1px"
                 borderColor="gray.100"
+                as="form"
+                onSubmit={handleSubmit}
             >
                 <VStack gap={6} align="stretch">
                     <Heading as="h2" size="xl" textAlign="center" mb={4} fontWeight="bold">
                         Login
                     </Heading>
 
+                    {error && (
+                        <Text color="red.500" fontSize="sm" textAlign="center">
+                            {error}
+                        </Text>
+                    )}
+
                     <Field.Root>
-                        <Field.Label fontSize="sm" color="gray.600">Email address</Field.Label>
+                        <Field.Label fontSize="sm" color="gray.600">Username</Field.Label>
                         <Input
-                            type="email"
-                            placeholder="Enter email"
+                            type="text"
+                            placeholder="Enter username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
                         />
                     </Field.Root>
 
@@ -42,6 +76,9 @@ export const LoginForm: React.FC = () => {
                         <Input
                             type="password"
                             placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
                         />
                     </Field.Root>
 
@@ -50,6 +87,8 @@ export const LoginForm: React.FC = () => {
                         size="lg"
                         width="full"
                         mt={4}
+                        type="submit"
+                        loading={isLoading}
                     >
                         Login
                     </Button>

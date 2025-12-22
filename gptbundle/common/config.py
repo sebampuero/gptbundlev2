@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "gptbundle"
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
     POSTGRES_HOST: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
