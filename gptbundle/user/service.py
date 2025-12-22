@@ -26,7 +26,9 @@ def get_user_by_email(email: str, session: Session) -> User | None:
 
 
 def get_user_by_username(username: str, session: Session) -> User | None:
-    return session.exec(select(User).where(User.username == username)).one_or_none()
+    return session.exec(
+        select(User).where(User.username == username and User.is_active)
+    ).one_or_none()
 
 
 def login(user: UserLogin, session: Session) -> User | None:
