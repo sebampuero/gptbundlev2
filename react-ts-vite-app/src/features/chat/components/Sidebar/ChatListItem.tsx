@@ -4,11 +4,10 @@ import { LuTrash2 } from "react-icons/lu";
 interface ChatListItemProps {
     id: string;
     title: string;
-    lastMessage: string;
     timestamp: string;
 }
 
-export const ChatListItem = ({ title, lastMessage, timestamp }: ChatListItemProps) => {
+export const ChatListItem = ({ title, timestamp }: ChatListItemProps) => {
     return (
         <Box
             p={3}

@@ -60,7 +60,8 @@ def retrieve_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) 
     "/chats/{user_email}",
     response_model=list[Chat],
     responses={404: {"description": "Chats not found"}},
-)  # TODO: paginate this
+)  # TODO: paginate this and this should only return id, timestamps
+# and a summary of the chat
 def retrieve_chats(chat_repo: ChatRepositoryDep, user_email: str) -> Any:
     logger.info(f"Received GET Request for chats of user: {user_email}")
     chats = get_chats_by_user_email(chat_repo=chat_repo, user_email=user_email)

@@ -1,13 +1,17 @@
-import { Box, VStack, Heading, Button, HStack, IconButton } from "@chakra-ui/react";
+import { Box, VStack, Heading, Button, HStack, IconButton, Spinner, Text } from "@chakra-ui/react";
 import { LuChevronDown, LuPanelLeftClose } from "react-icons/lu";
 import { SearchField } from "./SearchField";
 import { ChatListItem } from "./ChatListItem";
+import { useChats } from "../../hooks/useChats";
 
 interface SidebarProps {
     onToggle: () => void;
 }
 
 export const Sidebar = ({ onToggle }: SidebarProps) => {
+    // Using hardcoded email for now as per current implementation
+    const { chats, isLoading, error } = useChats("test-live@example.com");
+
     return (
         <Box
             width="300px"
@@ -31,8 +35,38 @@ export const Sidebar = ({ onToggle }: SidebarProps) => {
                 </IconButton>
             </HStack>
             <SearchField />
-            <VStack align="stretch" gap={0} flex={1} overflowY="auto">
+            <VStack align="stretch" gap={0} flex={1} overflowY="auto" mt={4}>
+                {isLoading && (
+                    <Box display="flex" justifyContent="center" py={4}>
+                        <Spinner size="sm" />
+                    </Box>
+                )}
 
+                {error && (
+                    <Box px={2} py={2}>
+                        <Text fontSize="xs" color="red.500">Error loading chats</Text>
+                    </Box>
+                )}
+
+                {!isLoading && !error && chats.map((chat) => {
+                    const firstMessage = chat.messages[0]?.content || "New Chat";
+                    const date = new Date(chat.timestamp * 1000).toLocaleDateString();
+
+                    return (
+                        <ChatListItem
+                            key={chat.chat_id}
+                            id={chat.chat_id}
+                            title={firstMessage.length > 30 ? firstMessage.substring(0, 30) + "..." : firstMessage}
+                            timestamp={date}
+                        />
+                    );
+                })}
+
+                {!isLoading && !error && chats.length === 0 && (
+                    <Box px={2} py={4}>
+                        <Text fontSize="sm" color="gray.500" textAlign="center">No chats yet</Text>
+                    </Box>
+                )}
             </VStack>
             <Button
                 variant="ghost"
