@@ -222,8 +222,8 @@ def test_websocket_chat_endpoint_first_connection(
 
             if ws_msg.type == WebSocketMessageType.NEW_CHAT:
                 assert is_valid_uuid4(ws_msg.chat_id)
-                assert ws_msg.timestamp > 0
-                cleanup_chats.append((ws_msg.chat_id, ws_msg.timestamp))
+                assert ws_msg.chat_timestamp > 0
+                cleanup_chats.append((ws_msg.chat_id, ws_msg.chat_timestamp))
             elif ws_msg.type == WebSocketMessageType.TOKEN:
                 total_response += ws_msg.content
             elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:

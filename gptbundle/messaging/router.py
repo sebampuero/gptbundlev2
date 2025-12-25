@@ -134,7 +134,7 @@ async def websocket_text_generation_endpoint(
                         WebSocketMessage(
                             type=WebSocketMessageType.NEW_CHAT,
                             chat_id=active_chat_id,
-                            timestamp=active_timestamp,
+                            chat_timestamp=active_timestamp,
                         ).model_dump()
                     )
                 except Exception as e:

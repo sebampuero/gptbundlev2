@@ -42,5 +42,5 @@ class Chat(ChatCreate):
 class WebSocketMessage(BaseModel):
     type: WebSocketMessageType
     chat_id: str | None = None
-    timestamp: float | None = None
+    chat_timestamp: float | None = None
     content: str | None = None

@@ -2,12 +2,16 @@ import { Flex, Box, useBreakpointValue } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { Sidebar } from "../features/chat/components/Sidebar/Sidebar";
 import { ChatInputArea } from "../features/chat/components/ChatInputArea/ChatInputArea";
+import { useWebsocket } from "../features/chat/hooks/useWebsocket";
 
 export const ChatPage = () => {
     const isMobile = useBreakpointValue({ base: true, md: false });
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-    // Initialize sidebar state based on breakpoint
+    // websocket connection with new chat. TODO: pass props chatid and timestamp when
+    // clicking on a sidebar item
+    const { messages, sendMessage, isConnected } = useWebsocket(null);
+
     useEffect(() => {
         if (isMobile !== undefined) {
             setIsSidebarOpen(!isMobile);
@@ -43,11 +47,32 @@ export const ChatPage = () => {
                 <Sidebar onToggle={toggleSidebar} />
             </Box>
 
-            <Box flex={1} position="relative" bg="#e8e2d9">
-                {/* Message list area would go here */}
+            <Box flex={1} position="relative" bg="#e8e2d9" display="flex" flexDirection="column">
+                <Box flex={1} overflowY="auto" p={4} pb="100px" display="flex" flexDirection="column">
+                    {messages.map((msg, index) => (
+                        <Box
+                            key={index}
+                            alignSelf={msg.role === "user" ? "flex-end" : "flex-start"}
+                            bg={msg.role === "user" ? "blue.500" : "white"}
+                            color={msg.role === "user" ? "white" : "black"}
+                            p={3}
+                            borderRadius="lg"
+                            mb={2}
+                            maxW="80%"
+                        >
+                            {msg.content}
+                        </Box>
+                    ))}
+                    {!isConnected && (
+                        <Box color="red.500" textAlign="center">
+                            Connecting...
+                        </Box>
+                    )}
+                </Box>
                 <ChatInputArea
                     onShowSidebar={toggleSidebar}
                     isSidebarOpen={isSidebarOpen}
+                    onSendMessage={(content) => sendMessage(content, "test-live@example.com")} // Using test email for now
                 />
             </Box>
         </Flex>

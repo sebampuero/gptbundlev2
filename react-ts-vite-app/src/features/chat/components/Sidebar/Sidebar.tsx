@@ -32,9 +32,7 @@ export const Sidebar = ({ onToggle }: SidebarProps) => {
             </HStack>
             <SearchField />
             <VStack align="stretch" gap={0} flex={1} overflowY="auto">
-                <ChatListItem id="1" title="Chat 1" lastMessage="Last message" timestamp="12:34" />
-                <ChatListItem id="2" title="Chat 2" lastMessage="Last message" timestamp="12:34" />
-                <ChatListItem id="3" title="Chat 3" lastMessage="Last message" timestamp="12:34" />
+
             </VStack>
             <Button
                 variant="ghost"
