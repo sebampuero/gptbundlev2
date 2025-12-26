@@ -5,9 +5,11 @@ interface ChatListItemProps {
     id: string;
     title: string;
     timestamp: string;
+    rawTimestamp: number;
+    onDelete: (id: string, timestamp: number) => void;
 }
 
-export const ChatListItem = ({ title, timestamp }: ChatListItemProps) => {
+export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete }: ChatListItemProps) => {
     return (
         <Box
             p={3}
@@ -35,7 +37,7 @@ export const ChatListItem = ({ title, timestamp }: ChatListItemProps) => {
                         _hover={{ color: "red.500", bg: "transparent" }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            // No functionality yet
+                            onDelete(id, rawTimestamp);
                         }}
                     />
                 </HStack>

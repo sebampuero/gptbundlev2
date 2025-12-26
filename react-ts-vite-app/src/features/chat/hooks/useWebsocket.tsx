@@ -59,11 +59,10 @@ export const useWebsocket = (activeChatMetadata: { chatId: string; timestamp: nu
                     break;
 
                 case "stream_finished":
-                    console.log("Stream finished");
                     break;
 
                 case "error":
-                    console.error("WS Error:", data.content);
+                    console.error("WebSocket error:", data.content);
                     break;
             }
         };

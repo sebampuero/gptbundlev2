@@ -10,7 +10,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ onToggle }: SidebarProps) => {
     // Using hardcoded email for now as per current implementation
-    const { chats, isLoading, error } = useChats("test-live@example.com");
+    const { chats, isLoading, error, deleteChat } = useChats("test-live@example.com");
 
     return (
         <Box
@@ -58,6 +58,8 @@ export const Sidebar = ({ onToggle }: SidebarProps) => {
                             id={chat.chat_id}
                             title={firstMessage.length > 30 ? firstMessage.substring(0, 30) + "..." : firstMessage}
                             timestamp={date}
+                            rawTimestamp={chat.timestamp}
+                            onDelete={deleteChat}
                         />
                     );
                 })}

@@ -6,6 +6,7 @@ const BASE_URL = "http://localhost:8000/api/v1/messaging";
 export const useChats = (userEmail: string) => {
     const [chats, setChats] = useState<Chat[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -35,5 +36,25 @@ export const useChats = (userEmail: string) => {
         fetchChats();
     }, [userEmail]);
 
-    return { chats, isLoading, error };
+    const deleteChat = async (chatId: string, timestamp: number) => {
+        setIsDeleting(true);
+        setError(null);
+        try {
+            const response = await fetch(`${BASE_URL}/chat/${chatId}/${timestamp}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete chat");
+            }
+
+            setChats((prevChats) => prevChats.filter((chat) => chat.chat_id !== chatId));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    return { chats, isLoading, isDeleting, error, deleteChat };
 };
