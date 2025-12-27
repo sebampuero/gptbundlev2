@@ -14,12 +14,14 @@ interface ChatInputAreaProps {
     onShowSidebar: () => void;
     isSidebarOpen: boolean;
     onSendMessage: (content: string) => void;
+    onStartNewChat: () => void;
 }
 
 export const ChatInputArea = ({
     onShowSidebar,
     isSidebarOpen,
     onSendMessage,
+    onStartNewChat
 }: ChatInputAreaProps) => {
     const { open, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState("");
@@ -38,9 +40,10 @@ export const ChatInputArea = ({
         }
     };
 
-    const onStartNewChat = () => {
+    const onStartNewChatBtnClicked = () => {
         onClose();
         navigate("/chat", { replace: true });
+        onStartNewChat();
     };
 
     return (
@@ -87,7 +90,7 @@ export const ChatInputArea = ({
                     <LuSend />
                 </IconButton>
             </HStack>
-            <OptionsModal isOpen={open} onClose={onClose} onStartNewChat={onStartNewChat} />
+            <OptionsModal isOpen={open} onClose={onClose} onStartNewChat={onStartNewChatBtnClicked} />
         </Box>
     );
 };

@@ -12,7 +12,7 @@ export const ChatPage = () => {
 
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
-    const { messages, sendMessage, isConnected } = useChatMessages({ chatId, timestamp });
+    const { messages, sendMessage, isConnected, startNewChat } = useChatMessages({ chatId, timestamp });
 
     useEffect(() => {
         if (isMobile !== undefined) {
@@ -75,6 +75,7 @@ export const ChatPage = () => {
                     onShowSidebar={toggleSidebar}
                     isSidebarOpen={isSidebarOpen}
                     onSendMessage={(content) => sendMessage(content, "test-live@example.com")} // Using test email for now
+                    onStartNewChat={startNewChat}
                 />
             </Box>
         </Flex>

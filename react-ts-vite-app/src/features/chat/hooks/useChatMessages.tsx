@@ -130,9 +130,15 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         }
     }, []);
 
+    const startNewChat = useCallback(() => {
+        setMessages([]);
+
+    }, []);
+
     return {
         messages,
         isConnected,
         sendMessage,
+        startNewChat
     };
 }
