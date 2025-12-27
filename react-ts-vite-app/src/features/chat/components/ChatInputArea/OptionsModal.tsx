@@ -18,6 +18,7 @@ import { Search, Check } from "lucide-react";
 interface OptionsModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onStartNewChat: () => void;
 }
 
 const LLM_MODELS = [
@@ -36,7 +37,7 @@ const LLM_MODELS = [
     { label: "GPT-5o mini5", value: "gpt-5o-mini5" },
 ];
 
-export const OptionsModal = ({ isOpen, onClose }: OptionsModalProps) => {
+export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalProps) => {
     const [selectedModel, setSelectedModel] = useState("gpt-4o");
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -150,7 +151,7 @@ export const OptionsModal = ({ isOpen, onClose }: OptionsModalProps) => {
                     <Box p={4} bg="gray.50" borderTop="1px solid" borderColor="gray.100">
                         <Button
                             variant="solid"
-                            onClick={onClose}
+                            onClick={onStartNewChat}
                             fontWeight="bold"
                             boxShadow="sm"
                             _hover={{ transform: "translateY(-1px)", boxShadow: "md" }}

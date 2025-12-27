@@ -8,6 +8,7 @@ import {
 import { useState } from "react";
 import { LuPlus, LuSend, LuPanelLeftOpen } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
+import { useNavigate } from "react-router-dom";
 
 interface ChatInputAreaProps {
     onShowSidebar: () => void;
@@ -22,6 +23,7 @@ export const ChatInputArea = ({
 }: ChatInputAreaProps) => {
     const { open, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState("");
+    const navigate = useNavigate();
 
     const handleSend = () => {
         if (inputValue.trim()) {
@@ -34,6 +36,11 @@ export const ChatInputArea = ({
         if (e.key === "Enter") {
             handleSend();
         }
+    };
+
+    const onStartNewChat = () => {
+        onClose();
+        navigate("/chat", { replace: true });
     };
 
     return (
@@ -80,7 +87,7 @@ export const ChatInputArea = ({
                     <LuSend />
                 </IconButton>
             </HStack>
-            <OptionsModal isOpen={open} onClose={onClose} />
+            <OptionsModal isOpen={open} onClose={onClose} onStartNewChat={onStartNewChat} />
         </Box>
     );
 };
