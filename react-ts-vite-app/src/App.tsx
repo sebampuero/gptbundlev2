@@ -18,7 +18,7 @@ function App() {
             <RegisterPage />
           </Flex>
         } />
-        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat/:chatId?/:timestamp?" element={<ChatPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

@@ -2,15 +2,17 @@ import { Flex, Box, useBreakpointValue } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { Sidebar } from "../features/chat/components/Sidebar/Sidebar";
 import { ChatInputArea } from "../features/chat/components/ChatInputArea/ChatInputArea";
-import { useWebsocket } from "../features/chat/hooks/useWebsocket";
+import { useChatMessages } from "../features/chat/hooks/useChatMessages";
+import { useParams } from "react-router-dom";
 
 export const ChatPage = () => {
     const isMobile = useBreakpointValue({ base: true, md: false });
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const { chatId, timestamp } = useParams();
 
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
-    const { messages, sendMessage, isConnected } = useWebsocket(null);
+    const { messages, sendMessage, isConnected } = useChatMessages({ chatId, timestamp });
 
     useEffect(() => {
         if (isMobile !== undefined) {

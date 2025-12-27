@@ -18,21 +18,52 @@ export interface WebSocketMessage {
     chat_timestamp?: number;
 }
 
-export const useWebsocket = (activeChatMetadata: { chatId: string; timestamp: number } | null) => {
+export interface ChatMetadata {
+    chatId?: string;
+    timestamp?: string;
+}
+
+export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     const ws = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
 
+    const chatId = activeChatMetadata?.chatId || "new";
+    const timestamp = activeChatMetadata?.timestamp || "0";
+
     useEffect(() => {
+        const fetchHistory = async () => {
+            if (chatId === "new") {
+                setMessages([]);
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/v1/messaging/chat/${chatId}/${timestamp}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.messages) {
+                        setMessages(data.messages);
+                    }
+                } else {
+                    console.error("Failed to fetch chat history:", response.statusText);
+                    setMessages([]);
+                }
+            } catch (error) {
+                console.error("Error fetching chat history:", error);
+                setMessages([]);
+            }
+        };
+
+        fetchHistory();
+
         // Construct URL based on current active chat or "new"
-        const chatId = activeChatMetadata?.chatId || "new";
-        const timestamp = activeChatMetadata?.timestamp || 0;
         const url = `ws://localhost:8000/api/v1/messaging/chat/text_ws/${chatId}/${timestamp}`;
 
         ws.current = new WebSocket(url);
 
         ws.current.onopen = () => {
-            console.log("ws opened");
+            console.log("ws opened with chatId: " + chatId + " and timestamp: " + timestamp);
             setIsConnected(true);
         };
 
@@ -67,7 +98,14 @@ export const useWebsocket = (activeChatMetadata: { chatId: string; timestamp: nu
             }
         };
 
-    }, []);
+        return () => {
+            if (ws.current) {
+                console.log("closing ws for chatId: " + chatId);
+                ws.current.close();
+            }
+        };
+
+    }, [chatId, timestamp]);
 
     const sendMessage = useCallback((content: string, userEmail: string) => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {

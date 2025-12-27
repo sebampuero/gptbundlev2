@@ -1,5 +1,6 @@
 import { Box, Text, VStack, IconButton, HStack } from "@chakra-ui/react";
 import { LuTrash2 } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
 
 interface ChatListItemProps {
     id: string;
@@ -10,6 +11,7 @@ interface ChatListItemProps {
 }
 
 export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete }: ChatListItemProps) => {
+    let navigate = useNavigate();
     return (
         <Box
             p={3}
@@ -20,7 +22,7 @@ export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete }: C
             position="relative"
             role="group"
         >
-            <VStack align="start">
+            <VStack align="start" onClick={() => navigate(`/chat/${id}/${rawTimestamp}`, { replace: true })}>
                 <Text fontSize="xs" color="gray.500">
                     {timestamp}
                 </Text>
@@ -42,6 +44,6 @@ export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete }: C
                     />
                 </HStack>
             </VStack>
-        </Box>
+        </Box >
     );
 };
