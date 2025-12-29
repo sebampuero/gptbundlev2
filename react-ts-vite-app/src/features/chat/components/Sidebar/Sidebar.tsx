@@ -6,9 +6,12 @@ import { useChats } from "../../hooks/useChats";
 
 interface SidebarProps {
     onToggle: () => void;
+    startNewChat: () => void;
+    currentChatId?: string;
+    currentTimestamp?: string;
 }
 
-export const Sidebar = ({ onToggle }: SidebarProps) => {
+export const Sidebar = ({ onToggle, startNewChat, currentChatId, currentTimestamp }: SidebarProps) => {
     // Using hardcoded email for now as per current implementation
     const { chats, isLoading, error, deleteChat } = useChats("test-live@example.com");
 
@@ -60,6 +63,9 @@ export const Sidebar = ({ onToggle }: SidebarProps) => {
                             timestamp={date}
                             rawTimestamp={chat.timestamp}
                             onDelete={deleteChat}
+                            startNewChat={startNewChat}
+                            currentChatId={currentChatId}
+                            currentTimestamp={currentTimestamp}
                         />
                     );
                 })}

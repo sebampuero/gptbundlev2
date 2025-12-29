@@ -8,9 +8,12 @@ interface ChatListItemProps {
     timestamp: string;
     rawTimestamp: number;
     onDelete: (id: string, timestamp: number) => void;
+    startNewChat: () => void;
+    currentChatId?: string;
+    currentTimestamp?: string;
 }
 
-export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete }: ChatListItemProps) => {
+export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, startNewChat, currentChatId, currentTimestamp }: ChatListItemProps) => {
     let navigate = useNavigate();
     return (
         <Box
@@ -40,6 +43,11 @@ export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete }: C
                         onClick={(e) => {
                             e.stopPropagation();
                             onDelete(id, rawTimestamp);
+                            // Only start a new chat if the chat being deleted is the current one
+                            if (id === currentChatId && rawTimestamp.toString() === currentTimestamp) {
+                                startNewChat();
+                                navigate("/chat", { replace: true });
+                            }
                         }}
                     />
                 </HStack>

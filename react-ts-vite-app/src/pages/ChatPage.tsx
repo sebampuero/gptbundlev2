@@ -46,7 +46,7 @@ export const ChatPage = () => {
                 display={!isMobile && !isSidebarOpen ? "none" : "block"}
                 width={isMobile ? "300px" : "auto"}
             >
-                <Sidebar onToggle={toggleSidebar} />
+                <Sidebar onToggle={toggleSidebar} startNewChat={startNewChat} currentChatId={chatId} currentTimestamp={timestamp} />
             </Box>
 
             <Box flex={1} position="relative" bg="#e8e2d9" display="flex" flexDirection="column">
