@@ -14,6 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useMemo } from "react";
 import { Search, Check } from "lucide-react";
+import { useLLModels } from "../../hooks/useLLModels";
 
 interface OptionsModalProps {
     isOpen: boolean;
@@ -21,29 +22,15 @@ interface OptionsModalProps {
     onStartNewChat: () => void;
 }
 
-const LLM_MODELS = [
-    { label: "GPT-4o", value: "gpt-4o" },
-    { label: "GPT-4o mini", value: "gpt-4o-mini" },
-    { label: "Claude 3.5 Sonnet", value: "claude-3.5-sonnet" },
-    { label: "Claude 3 Opus", value: "claude-3-opus" },
-    { label: "Gemini 1.5 Pro", value: "gemini-1.5-pro" },
-    { label: "Gemini 1.5 Flash", value: "gemini-1.5-flash" },
-    { label: "GPT-5", value: "gpt-5" },
-    { label: "GPT-5o", value: "gpt-5o" },
-    { label: "GPT-5o mini", value: "gpt-5o-mini" },
-    { label: "GPT-5o mini2", value: "gpt-5o-mini2" },
-    { label: "GPT-5o mini3", value: "gpt-5o-mini3" },
-    { label: "GPT-5o mini4", value: "gpt-5o-mini4" },
-    { label: "GPT-5o mini5", value: "gpt-5o-mini5" },
-];
-
 export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalProps) => {
-    const [selectedModel, setSelectedModel] = useState("gpt-4o");
+    const [selectedModel, setSelectedModel] = useState("openrouter/mistralai/devstral-2512:free");
     const [searchQuery, setSearchQuery] = useState("");
 
+    const { models } = useLLModels();
+
     const filteredModels = useMemo(() => {
-        return LLM_MODELS.filter(model =>
-            model.label.toLowerCase().includes(searchQuery.toLowerCase())
+        return models.filter(model =>
+            model.model_name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [searchQuery]);
 
@@ -97,6 +84,9 @@ export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalPr
                                         bg: "white",
                                     }}
                                 />
+                                <Text fontSize="xs" color="gray.500" fontWeight="bold">
+                                    Currently selected model: {selectedModel}
+                                </Text>
                                 <Box
                                     position="absolute"
                                     left="3.5"
@@ -113,38 +103,46 @@ export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalPr
 
                     <DialogBody p={2} maxH="400px" overflowY="auto">
                         <VStack gap={1} align="stretch">
-                            {filteredModels.length > 0 ? (
-                                filteredModels.map((model) => (
-                                    <Box
-                                        key={model.value}
-                                        p={3}
-                                        px={4}
-                                        cursor="pointer"
-                                        borderRadius="lg"
-                                        bg={selectedModel === model.value ? "blue.50" : "transparent"}
-                                        transition="all 0.2s"
-                                        _hover={{
-                                            bg: selectedModel === model.value ? "blue.50" : "gray.50",
-                                        }}
-                                        onClick={() => setSelectedModel(model.value)}
-                                    >
-                                        <HStack justify="space-between">
-                                            <Text fontWeight="semibold" fontSize="md" color={selectedModel === model.value ? "blue.600" : "gray.800"}>
-                                                {model.label}
-                                            </Text>
-                                            {selectedModel === model.value && (
-                                                <Check size={18} color="var(--chakra-colors-blue-600)" />
+                            {filteredModels.map((model) => (
+                                <Box
+                                    key={model.model_name}
+                                    p={3}
+                                    px={4}
+                                    cursor="pointer"
+                                    borderRadius="lg"
+                                    bg={selectedModel === model.model_name ? "blue.50" : "transparent"}
+                                    transition="all 0.2s"
+                                    _hover={{
+                                        bg: selectedModel === model.model_name ? "blue.50" : "gray.50",
+                                    }}
+                                    onClick={() => setSelectedModel(model.model_name)}
+                                >
+                                    <HStack justify="space-between">
+                                        <Text fontWeight="semibold" fontSize="md" color={selectedModel === model.model_name ? "blue.600" : "gray.800"}>
+                                            {model.model_name}
+                                        </Text>
+                                        {selectedModel === model.model_name && (
+                                            <Check size={18} color="var(--chakra-colors-blue-600)" />
+                                        )}
+                                    </HStack>
+                                    <Text fontSize="xs" color="gray.500">
+                                        <HStack>
+                                            Input vision
+                                            {model.supports_input_vision && (
+                                                <Check size={12} color="var(--chakra-colors-blue-600)" />
                                             )}
                                         </HStack>
-                                    </Box>
-                                ))
-                            ) : (
-                                <Box p={8} textAlign="center">
-                                    <Text color="gray.500" fontSize="sm">
-                                        No models found matching your search.
+                                    </Text>
+                                    <Text fontSize="xs" color="gray.500">
+                                        <HStack>
+                                            Output vision
+                                            {model.supports_output_vision && (
+                                                <Check size={12} color="var(--chakra-colors-blue-600)" />
+                                            )}
+                                        </HStack>
                                     </Text>
                                 </Box>
-                            )}
+                            ))}
                         </VStack>
                     </DialogBody>
 

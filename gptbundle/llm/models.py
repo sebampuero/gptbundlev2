@@ -20,3 +20,9 @@ class MessageImage(BaseMessage):
 
 class Chat(BaseModel):
     messages: list[MessageText | MessageImage]
+
+
+class LLMModel(BaseModel):
+    model_name: str
+    supports_input_vision: bool
+    supports_output_vision: bool

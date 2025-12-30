@@ -14,3 +14,9 @@ export interface Chat {
     user_email: string;
     messages: Message[];
 }
+
+export interface LLMModel {
+    model_name: string;
+    supports_input_vision: boolean;
+    supports_output_vision: boolean;
+}

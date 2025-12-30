@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     AWS_REGION: str = "eu-central-1"
     AWS_ENDPOINT_URL_DYNAMODB: str | None = None
 
+    OPENROUTER_API_KEY: str
+    OPENROUTER_MODELS_URL: str = "https://openrouter.ai/api/v1/models"
+
     ROOT_LOG_LEVEL: str = "INFO"
     APP_LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
