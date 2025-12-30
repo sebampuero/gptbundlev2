@@ -93,7 +93,16 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                     break;
 
                 case "error":
-                    console.error("WebSocket error:", data.content);
+                    setMessages((prev) => {
+                        const lastMessage = prev[prev.length - 1];
+                        if (lastMessage && lastMessage.role === "assistant") {
+                            return [
+                                ...prev.slice(0, -1),
+                                { ...lastMessage, content: "The model had an error generating a response, please try another model or try later." }
+                            ];
+                        }
+                        return [...prev, { role: "assistant", content: "The model had an error generating a response, please try another model or try later." }];
+                    });
                     break;
             }
         };

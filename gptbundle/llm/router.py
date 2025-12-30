@@ -39,7 +39,7 @@ async def get_models():
 
         models.append(
             LLMModel(
-                model_name=model_data["id"],
+                model_name=f"openrouter/{model_data['id']}",  # TODO: hardcoded for now
                 supports_input_vision=supports_input_vision,
                 supports_output_vision=supports_output_vision,
             )
