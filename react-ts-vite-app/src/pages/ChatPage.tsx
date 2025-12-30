@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "../features/chat/components/Sidebar/Sidebar";
 import { ChatInputArea } from "../features/chat/components/ChatInputArea/ChatInputArea";
 import { useChatMessages } from "../features/chat/hooks/useChatMessages";
+import { useChats } from "../features/chat/hooks/useChats";
 import { useParams } from "react-router-dom";
 
 export const ChatPage = () => {
@@ -13,6 +14,12 @@ export const ChatPage = () => {
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
     const { messages, sendMessage, isConnected, startNewChat } = useChatMessages({ chatId, timestamp });
+    const { chats, isLoading, error, deleteChat, refreshChats } = useChats("test-live@example.com");
+
+    const handleStartNewChat = () => {
+        startNewChat();
+        refreshChats();
+    };
 
     useEffect(() => {
         if (isMobile !== undefined) {
@@ -46,7 +53,16 @@ export const ChatPage = () => {
                 display={!isMobile && !isSidebarOpen ? "none" : "block"}
                 width={isMobile ? "300px" : "auto"}
             >
-                <Sidebar onToggle={toggleSidebar} startNewChat={startNewChat} currentChatId={chatId} currentTimestamp={timestamp} />
+                <Sidebar
+                    onToggle={toggleSidebar}
+                    startNewChat={handleStartNewChat}
+                    currentChatId={chatId}
+                    currentTimestamp={timestamp}
+                    chats={chats}
+                    isLoading={isLoading}
+                    error={error}
+                    onDeleteChat={deleteChat}
+                />
             </Box>
 
             <Box flex={1} position="relative" bg="#e8e2d9" display="flex" flexDirection="column">
@@ -75,7 +91,7 @@ export const ChatPage = () => {
                     onShowSidebar={toggleSidebar}
                     isSidebarOpen={isSidebarOpen}
                     onSendMessage={(content) => sendMessage(content, "test-live@example.com")} // Using test email for now
-                    onStartNewChat={startNewChat}
+                    onStartNewChat={handleStartNewChat}
                 />
             </Box>
         </Flex>

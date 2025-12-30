@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Chat } from "../types";
 
 const BASE_URL = "http://localhost:8000/api/v1/messaging";
@@ -9,32 +9,32 @@ export const useChats = (userEmail: string) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchChats = async () => {
-            if (!userEmail) return;
+    const fetchChats = useCallback(async () => {
+        if (!userEmail) return;
 
-            setIsLoading(true);
-            setError(null);
-            try {
-                const response = await fetch(`${BASE_URL}/chats/${userEmail}`);
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        setChats([]);
-                        return;
-                    }
-                    throw new Error("Failed to fetch chats");
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${BASE_URL}/chats/${userEmail}`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    setChats([]);
+                    return;
                 }
-                const data = await response.json();
-                setChats(data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "An unknown error occurred");
-            } finally {
-                setIsLoading(false);
+                throw new Error("Failed to fetch chats");
             }
-        };
-
-        fetchChats();
+            const data = await response.json();
+            setChats(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred");
+        } finally {
+            setIsLoading(false);
+        }
     }, [userEmail]);
+
+    useEffect(() => {
+        fetchChats();
+    }, [fetchChats]);
 
     const deleteChat = async (chatId: string, timestamp: number) => {
         setIsDeleting(true);
@@ -56,5 +56,5 @@ export const useChats = (userEmail: string) => {
         }
     };
 
-    return { chats, isLoading, isDeleting, error, deleteChat };
+    return { chats, isLoading, isDeleting, error, deleteChat, refreshChats: fetchChats };
 };

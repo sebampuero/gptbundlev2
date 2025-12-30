@@ -2,18 +2,29 @@ import { Box, VStack, Heading, Button, HStack, IconButton, Spinner, Text } from 
 import { LuChevronDown, LuPanelLeftClose } from "react-icons/lu";
 import { SearchField } from "./SearchField";
 import { ChatListItem } from "./ChatListItem";
-import { useChats } from "../../hooks/useChats";
+import type { Chat } from "../../types";
 
 interface SidebarProps {
     onToggle: () => void;
     startNewChat: () => void;
     currentChatId?: string;
     currentTimestamp?: string;
+    chats: Chat[];
+    isLoading: boolean;
+    error: string | null;
+    onDeleteChat: (chatId: string, timestamp: number) => Promise<void>;
 }
 
-export const Sidebar = ({ onToggle, startNewChat, currentChatId, currentTimestamp }: SidebarProps) => {
-    // Using hardcoded email for now as per current implementation
-    const { chats, isLoading, error, deleteChat } = useChats("test-live@example.com");
+export const Sidebar = ({
+    onToggle,
+    startNewChat,
+    currentChatId,
+    currentTimestamp,
+    chats,
+    isLoading,
+    error,
+    onDeleteChat
+}: SidebarProps) => {
 
     return (
         <Box
@@ -62,7 +73,7 @@ export const Sidebar = ({ onToggle, startNewChat, currentChatId, currentTimestam
                             title={firstMessage.length > 30 ? firstMessage.substring(0, 30) + "..." : firstMessage}
                             timestamp={date}
                             rawTimestamp={chat.timestamp}
-                            onDelete={deleteChat}
+                            onDelete={onDeleteChat}
                             startNewChat={startNewChat}
                             currentChatId={currentChatId}
                             currentTimestamp={currentTimestamp}
