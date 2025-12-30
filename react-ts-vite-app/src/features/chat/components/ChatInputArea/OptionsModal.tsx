@@ -15,6 +15,7 @@ import {
 import { useState, useMemo } from "react";
 import { Search, Check } from "lucide-react";
 import { useLLModels } from "../../hooks/useLLModels";
+import { useModel } from "../../../../context/ModelContext";
 
 interface OptionsModalProps {
     isOpen: boolean;
@@ -23,7 +24,7 @@ interface OptionsModalProps {
 }
 
 export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalProps) => {
-    const [selectedModel, setSelectedModel] = useState("openrouter/mistralai/devstral-2512:free");
+    const { selectedModel, setSelectedModel } = useModel();
     const [searchQuery, setSearchQuery] = useState("");
 
     const { models } = useLLModels();

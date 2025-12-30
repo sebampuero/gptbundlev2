@@ -107,12 +107,12 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
     }, [chatId, timestamp]);
 
-    const sendMessage = useCallback((content: string, userEmail: string) => {
+    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string) => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             const userMessage: Message = {
                 role: "user",
                 content,
-                llm_model: "openrouter/mistralai/devstral-2512:free",
+                llm_model,
                 message_type: "text"
             };
 

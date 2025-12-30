@@ -5,11 +5,13 @@ import { ChatInputArea } from "../features/chat/components/ChatInputArea/ChatInp
 import { useChatMessages } from "../features/chat/hooks/useChatMessages";
 import { useChats } from "../features/chat/hooks/useChats";
 import { useParams } from "react-router-dom";
+import { useModel } from "../context/ModelContext";
 
 export const ChatPage = () => {
     const isMobile = useBreakpointValue({ base: true, md: false });
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const { chatId, timestamp } = useParams();
+    const { selectedModel } = useModel();
 
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
@@ -90,7 +92,7 @@ export const ChatPage = () => {
                 <ChatInputArea
                     onShowSidebar={toggleSidebar}
                     isSidebarOpen={isSidebarOpen}
-                    onSendMessage={(content) => sendMessage(content, "test-live@example.com")} // Using test email for now
+                    onSendMessage={(content) => sendMessage(content, "test-live@example.com", selectedModel)} // Using test email for now
                     onStartNewChat={handleStartNewChat}
                 />
             </Box>
