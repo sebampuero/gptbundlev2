@@ -39,21 +39,23 @@ export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isL
             position="relative"
             role="group"
         >
-            <Box
-                position="absolute"
-                top={0}
-                right={0}
-                opacity={5}
-                _groupHover={{ opacity: 1 }}
-                transition="opacity 0.2s"
-                cursor="pointer"
-                onClick={handleCopy}
-                p={1}
-                borderRadius="md"
-                _hover={{ bg: "blackAlpha.100" }}
-            >
-                {isCopied ? <Check size={14} /> : <Copy size={14} />}
-            </Box>
+            {!isLoading && (
+                <Box
+                    position="absolute"
+                    top={0}
+                    right={0}
+                    opacity={5}
+                    _groupHover={{ opacity: 1 }}
+                    transition="opacity 0.2s"
+                    cursor="pointer"
+                    onClick={handleCopy}
+                    p={1}
+                    borderRadius="md"
+                    _hover={{ bg: "blackAlpha.100" }}
+                >
+                    {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                </Box>
+            )}
             <Box
                 position="relative"
                 bottom={0}
