@@ -29,52 +29,45 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const [isProcessingMessage, setIsProcessingMessage] = useState(false);
+    const reconnectTimeoutRef = useRef<number | null>(null);
+    const isManuallyClosed = useRef(false);
 
     const chatId = activeChatMetadata?.chatId || "new";
     const timestamp = activeChatMetadata?.timestamp || "0";
 
-    useEffect(() => {
-        const fetchHistory = async () => {
-            if (chatId === "new") {
-                setMessages([]);
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:8000/api/v1/messaging/chat/${chatId}/${timestamp}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.messages) {
-                        setMessages(data.messages);
-                    }
-                } else {
-                    console.error("Failed to fetch chat history:", response.statusText);
-                    setMessages([]);
-                }
-            } catch (error) {
-                console.error("Error fetching chat history:", error);
-                setMessages([]);
-            }
-        };
-
-        fetchHistory();
+    const connect = useCallback(() => {
+        if (isManuallyClosed.current) return;
 
         // Construct URL based on current active chat or "new"
         const url = `ws://localhost:8000/api/v1/messaging/chat/text_ws/${chatId}/${timestamp}`;
 
-        ws.current = new WebSocket(url);
+        const socket = new WebSocket(url);
+        ws.current = socket;
 
-        ws.current.onopen = () => {
+        socket.onopen = () => {
             console.log("ws opened with chatId: " + chatId + " and timestamp: " + timestamp);
             setIsConnected(true);
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
+            }
         };
 
-        ws.current.onclose = () => {
-            console.log("ws closed");
+        socket.onclose = (event) => {
+            console.log("ws closed", event);
             setIsConnected(false);
+
+            // Only attempt reconnect if not manually closed
+            if (!isManuallyClosed.current) {
+                console.log(`Attempting reconnect in 3000ms...`);
+
+                reconnectTimeoutRef.current = window.setTimeout(() => {
+                    connect();
+                }, 3000);
+            }
         };
 
-        ws.current.onmessage = (event) => {
+        socket.onmessage = (event) => {
             const data: WebSocketMessage = JSON.parse(event.data);
 
             switch (data.type) {
@@ -120,15 +113,49 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                     break;
             }
         };
+    }, [chatId, timestamp]);
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (chatId === "new") {
+                setMessages([]);
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/v1/messaging/chat/${chatId}/${timestamp}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.messages) {
+                        setMessages(data.messages);
+                    }
+                } else {
+                    console.error("Failed to fetch chat history:", response.statusText);
+                    setMessages([]);
+                }
+            } catch (error) {
+                console.error("Error fetching chat history:", error);
+                setMessages([]);
+            }
+        };
+
+        fetchHistory();
+
+        isManuallyClosed.current = false;
+        connect();
 
         return () => {
+            isManuallyClosed.current = true;
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
             if (ws.current) {
                 console.log("closing ws for chatId: " + chatId);
                 ws.current.close();
             }
         };
 
-    }, [chatId, timestamp]);
+    }, [chatId, timestamp, connect]);
 
     const sendMessage = useCallback((content: string, userEmail: string, llm_model: string) => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
