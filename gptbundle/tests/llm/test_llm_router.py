@@ -47,10 +47,12 @@ def test_get_models(client):
     models = response.json()
     assert len(models) == 2
 
-    gemma = next(m for m in models if m["model_name"] == "google/gemma-3-12b-it:free")
+    gemma = next(
+        m for m in models if m["model_name"] == "openrouter/google/gemma-3-12b-it:free"
+    )
     assert gemma["supports_input_vision"] is True
     assert gemma["supports_output_vision"] is False
 
-    gpt4 = next(m for m in models if m["model_name"] == "openai/gpt-4o")
+    gpt4 = next(m for m in models if m["model_name"] == "openrouter/openai/gpt-4o")
     assert gpt4["supports_input_vision"] is False
     assert gpt4["supports_output_vision"] is False

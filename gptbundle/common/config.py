@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str
     OPENROUTER_MODELS_URL: str = "https://openrouter.ai/api/v1/models"
 
+    JWT_ALGORITHM: str = "HS256"
+    JWT_SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+
     ROOT_LOG_LEVEL: str = "INFO"
     APP_LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

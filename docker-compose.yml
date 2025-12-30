@@ -1,6 +1,8 @@
 secrets:
   openrouter_api_key:
     environment: OPENROUTER_API_KEY
+  jwt_secret_key:
+    environment: JWT_SECRET_KEY
 
 services:
   web:
@@ -21,6 +23,7 @@ services:
       - dynamodb-local
     secrets:
       - openrouter_api_key
+      - jwt_secret_key
 
   db:
     image: postgres:18-alpine
