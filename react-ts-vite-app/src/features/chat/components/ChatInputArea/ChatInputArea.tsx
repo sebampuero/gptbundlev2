@@ -1,6 +1,6 @@
 import {
     Box,
-    Input,
+    Textarea,
     IconButton,
     HStack,
     useDisclosure,
@@ -34,8 +34,9 @@ export const ChatInputArea = ({
         }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
             handleSend();
         }
     };
@@ -59,7 +60,7 @@ export const ChatInputArea = ({
                         <LuPanelLeftOpen />
                     </IconButton>
                 )}
-                <Input
+                <Textarea
                     placeholder="Type a message..."
                     variant="subtle"
                     px={3}
@@ -69,7 +70,7 @@ export const ChatInputArea = ({
                     flex={1}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                 />
                 <IconButton
                     aria-label="Options"
