@@ -7,6 +7,7 @@ export interface Message {
     role: MessageRole;
     llm_model?: string;
     message_type?: string;
+    is_loading_message?: boolean;
 }
 
 export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
@@ -27,6 +28,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     const ws = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
+    const [isProcessingMessage, setIsProcessingMessage] = useState(false);
 
     const chatId = activeChatMetadata?.chatId || "new";
     const timestamp = activeChatMetadata?.timestamp || "0";
@@ -77,6 +79,15 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
             switch (data.type) {
                 case "token":
+                    // delete the last message that was added as loading symbol
+                    setMessages((prev) => {
+                        const lastMessage = prev[prev.length - 1];
+                        if (lastMessage && lastMessage.role === "assistant" && lastMessage.is_loading_message) {
+                            return prev.slice(0, -1);
+                        }
+                        return prev;
+                    });
+
                     setMessages((prev) => {
                         const lastMessage = prev[prev.length - 1];
                         if (lastMessage && lastMessage.role === "assistant") {
@@ -87,9 +98,11 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                         }
                         return [...prev, { role: "assistant", content: data.content || "" }];
                     });
+                    setIsProcessingMessage(true);
                     break;
 
                 case "stream_finished":
+                    setIsProcessingMessage(false);
                     break;
 
                 case "error":
@@ -103,6 +116,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                         }
                         return [...prev, { role: "assistant", content: "The model had an error generating a response, please try another model or try later." }];
                     });
+                    setIsProcessingMessage(false);
                     break;
             }
         };
@@ -118,6 +132,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
     const sendMessage = useCallback((content: string, userEmail: string, llm_model: string) => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            setIsProcessingMessage(true);
             const userMessage: Message = {
                 role: "user",
                 content,
@@ -127,6 +142,13 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
             // Optimistically add user message to UI
             setMessages((prev) => [...prev, userMessage]);
+
+            // Add a last message that works as loading symbol
+            setMessages((prev) => [...prev, {
+                role: "assistant",
+                content: "",
+                is_loading_message: true
+            }]);
 
             const payload = {
                 messages: [userMessage],
@@ -148,6 +170,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         messages,
         isConnected,
         sendMessage,
-        startNewChat
+        startNewChat,
+        isProcessingMessage
     };
 }

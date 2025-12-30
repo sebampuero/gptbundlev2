@@ -16,7 +16,7 @@ export const ChatPage = () => {
 
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
-    const { messages, sendMessage, isConnected, startNewChat } = useChatMessages({ chatId, timestamp });
+    const { messages, sendMessage, isConnected, startNewChat, isProcessingMessage } = useChatMessages({ chatId, timestamp });
     const { chats, isLoading, error, deleteChat, refreshChats } = useChats("test-live@example.com");
 
     const handleStartNewChat = () => {
@@ -71,7 +71,11 @@ export const ChatPage = () => {
             <Box flex={1} position="relative" bg="#e8e2d9" display="flex" flexDirection="column">
                 <Box flex={1} overflowY="auto" p={4} pb="100px" display="flex" flexDirection="column">
                     {messages.map((msg, index) => (
-                        <MessageBubble key={index} message={msg} />
+                        <MessageBubble
+                            key={index}
+                            message={msg}
+                            isLoading={isProcessingMessage && msg.is_loading_message}
+                        />
                     ))}
                     {!isConnected && (
                         <Box color="red.500" textAlign="center">

@@ -1,4 +1,5 @@
 import { Box } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
@@ -7,7 +8,12 @@ interface MessageBubbleProps {
     message: { role: string; content: string };
 }
 
-export const MessageBubble = ({ message }: MessageBubbleProps) => {
+const bounce = keyframes`
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+`;
+
+export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isLoading?: boolean }) => {
     const isUser = message.role === "user";
     const [isCopied, setIsCopied] = useState(false);
 
@@ -37,7 +43,7 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
                 position="absolute"
                 top={0}
                 right={0}
-                opacity={5}
+                opacity={0}
                 _groupHover={{ opacity: 1 }}
                 transition="opacity 0.2s"
                 cursor="pointer"
@@ -55,6 +61,39 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
                 paddingTop={0}
             >
                 <Markdown>{message.content}</Markdown>
+                {isLoading && (
+                    <Box display="flex" alignItems="center" mt={2} height="10px">
+                        <Box
+                            as="span"
+                            width="6px"
+                            height="6px"
+                            bg="gray.500"
+                            borderRadius="full"
+                            mx="2px"
+                            animation={`${bounce} 1.4s infinite ease-in-out both`}
+                            animationDelay="-0.32s"
+                        />
+                        <Box
+                            as="span"
+                            width="6px"
+                            height="6px"
+                            bg="gray.500"
+                            borderRadius="full"
+                            mx="2px"
+                            animation={`${bounce} 1.4s infinite ease-in-out both`}
+                            animationDelay="-0.16s"
+                        />
+                        <Box
+                            as="span"
+                            width="6px"
+                            height="6px"
+                            bg="gray.500"
+                            borderRadius="full"
+                            mx="2px"
+                            animation={`${bounce} 1.4s infinite ease-in-out both`}
+                        />
+                    </Box>
+                )}
             </Box>
         </Box>
     );
