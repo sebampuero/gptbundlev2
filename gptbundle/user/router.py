@@ -1,10 +1,12 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import Session
 
+from gptbundle.common.config import settings
 from gptbundle.common.db import get_pg_db
+from gptbundle.security.service import generate_access_token, generate_refresh_token
 
 from .exceptions import UserAlreadyExistsError
 from .models import UserCreate, UserLogin, UserRegister, UserResponse
@@ -38,11 +40,29 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     response_model=UserResponse,
     responses={403: {"description": "Invalid username or password"}},
 )
-def login_user(session: SessionDep, user_in: UserLogin) -> Any:
+def login_user(session: SessionDep, user_in: UserLogin, response: Response) -> Any:
     user = login(session=session, user=user_in)
     if not user:
         raise HTTPException(
             status_code=403,
             detail="Invalid username or password",
         )
+    access_token = generate_access_token(user.username)
+    refresh_token = generate_refresh_token(user.username)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=not settings.DEVELOPMENT_MODE,
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=not settings.DEVELOPMENT_MODE,
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+    )
     return user

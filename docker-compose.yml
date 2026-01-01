@@ -18,6 +18,7 @@ services:
       - AWS_ENDPOINT_URL_DYNAMODB=http://dynamodb-local:8000
       - AWS_ACCESS_KEY_ID=TEST
       - AWS_SECRET_ACCESS_KEY=TEST
+      - DEVELOPMENT_MODE=false
     depends_on:
       - db
       - dynamodb-local
