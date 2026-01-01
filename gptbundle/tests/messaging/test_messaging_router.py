@@ -14,6 +14,7 @@ from gptbundle.messaging.schemas import (
     WebSocketMessageType,
 )
 from gptbundle.messaging.service import create_chat
+from gptbundle.security.service import generate_access_token
 
 
 def is_valid_uuid4(uuid_string: str) -> bool:
@@ -58,7 +59,11 @@ def test_retrieve_chat_success(client: TestClient, cleanup_chats: list):
     cleanup_chats.append((chat_id, timestamp))
 
     # Retrieve it
-    response = client.get(f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}")
+    token = generate_access_token(user_email)
+    response = client.get(
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
+        cookies={"access_token": token},
+    )
     assert response.status_code == 200
     content = response.json()
     assert content["chat_id"] == chat_id
@@ -69,7 +74,11 @@ def test_retrieve_chat_not_found(client: TestClient):
     chat_id = "non_existent_chat"
     timestamp = datetime.now().timestamp()
 
-    response = client.get(f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}")
+    token = generate_access_token("not_found@example.com")
+    response = client.get(
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
+        cookies={"access_token": token},
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Chat not found"
 
@@ -85,8 +94,9 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
     cleanup_chats.append((c2_id, c2_ts))
 
     # Retrieve all
+    token = generate_access_token(user_email)
     response = client.get(
-        f"{settings.API_V1_STR}/messaging/chats/{user_email}",
+        f"{settings.API_V1_STR}/messaging/chats", cookies={"access_token": token}
     )
     assert response.status_code == 200
     content = response.json()
@@ -95,7 +105,10 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
 
 
 def test_retrieve_chats_not_found(client: TestClient):
-    response = client.get(f"{settings.API_V1_STR}/messaging/chats/nobody@example.com")
+    token = generate_access_token("nobody@example.com")
+    response = client.get(
+        f"{settings.API_V1_STR}/messaging/chats", cookies={"access_token": token}
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Chats not found"
 
@@ -108,14 +121,17 @@ def test_delete_chat_success(client: TestClient, cleanup_chats: list):
     # No need to add to cleanup_chats since we're deleting it
 
     # Delete the chat
+    token = generate_access_token(user_email)
     delete_response = client.delete(
-        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
+        cookies={"access_token": token},
     )
     assert delete_response.status_code == 200
 
     # Verify it's deleted
     get_response = client.get(
-        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
+        cookies={"access_token": token},
     )
     assert get_response.status_code == 404
 
@@ -124,8 +140,10 @@ def test_delete_chat_not_found(client: TestClient):
     chat_id = "non_existent_delete_chat"
     timestamp = datetime.now().timestamp()
 
+    token = generate_access_token("delete_not_found@example.com")
     response = client.delete(
-        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}"
+        f"{settings.API_V1_STR}/messaging/chat/{chat_id}/{timestamp}",
+        cookies={"access_token": token},
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Chat not found"
@@ -148,8 +166,10 @@ def test_websocket_chat_endpoint_first_connection(
     }
     total_response = ""
 
+    token = generate_access_token("test@email.com")
     with client.websocket_connect(
-        f"{settings.API_V1_STR}/messaging/chat/text_ws/new/0"
+        f"{settings.API_V1_STR}/messaging/chat/text_ws/new/0",
+        cookies={"access_token": token},
     ) as websocket:
         websocket.send_json(chat_payload)
         while True:
@@ -206,8 +226,10 @@ def test_websocket_chat_endpoint_existing_chat_several_messages(
     }
     total_response = ""
 
+    token = generate_access_token(user_email)
     with client.websocket_connect(
-        f"{settings.API_V1_STR}/messaging/chat/text_ws/{chat_id}/{timestamp}"
+        f"{settings.API_V1_STR}/messaging/chat/text_ws/{chat_id}/{timestamp}",
+        cookies={"access_token": token},
     ) as websocket:
         websocket.send_json(chat_payload)
         while True:
@@ -223,8 +245,9 @@ def test_websocket_chat_endpoint_existing_chat_several_messages(
 
     assert "Bye!" in total_response
 
+    token = generate_access_token(user_email)
     response = client.get(
-        f"{settings.API_V1_STR}/messaging/chats/{user_email}",
+        f"{settings.API_V1_STR}/messaging/chats", cookies={"access_token": token}
     )
     assert response.status_code == 200
     content = response.json()

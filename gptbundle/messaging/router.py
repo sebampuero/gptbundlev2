@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from gptbundle.llm.service import generate_text_response
+from gptbundle.security.service import get_current_user
 
 from .repository import ChatRepository
 from .schemas import (
@@ -28,19 +29,32 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 ChatRepositoryDep = Annotated[ChatRepository, Depends(ChatRepository)]
+UserEmailDep = Annotated[str, Depends(get_current_user)]
 
 
 @router.get(
     "/chat/{chat_id}/{timestamp}",
     response_model=Chat,
-    responses={404: {"description": "Chat not found"}},
+    responses={
+        404: {"description": "Chat not found"},
+        401: {"description": "User not authenticated"},
+    },
 )
-# TODO: add authorization. An authenticated user may request a chat of another user.
-# Maybe we can pass the email along the request after the middleware authenticates
-# the user and validates the token
-def retrieve_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) -> Any:
+def retrieve_chat(
+    chat_repo: ChatRepositoryDep,
+    chat_id: str,
+    timestamp: float,
+    user_email: UserEmailDep,
+) -> Any:
     logger.info(f"Received GET Request for chat: {chat_id} and timestamp: {timestamp}")
-    chat = get_chat(chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp)
+    if not user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="User not authenticated",
+        )
+    chat = get_chat(
+        chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp, user_email=user_email
+    )
     if not chat:
         raise HTTPException(
             status_code=404,
@@ -50,13 +64,20 @@ def retrieve_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) 
 
 
 @router.get(
-    "/chats/{user_email}",
+    "/chats",
     response_model=list[Chat],
-    responses={404: {"description": "Chats not found"}},
-)  # TODO: paginate this and this should only return id, timestamps
-# and a summary of the chat
-def retrieve_chats(chat_repo: ChatRepositoryDep, user_email: str) -> Any:
+    responses={
+        404: {"description": "Chats not found"},
+        401: {"description": "User not authenticated"},
+    },
+)
+def retrieve_chats(chat_repo: ChatRepositoryDep, user_email: UserEmailDep) -> Any:
     logger.info(f"Received GET Request for chats of user: {user_email}")
+    if not user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="User not authenticated",
+        )
     chats = get_chats_by_user_email(chat_repo=chat_repo, user_email=user_email)
     if not chats:
         raise HTTPException(
@@ -68,13 +89,28 @@ def retrieve_chats(chat_repo: ChatRepositoryDep, user_email: str) -> Any:
 
 @router.delete(
     "/chat/{chat_id}/{timestamp}",
-    responses={404: {"description": "Chat not found"}},
+    responses={
+        404: {"description": "Chat not found"},
+        401: {"description": "User not authenticated"},
+    },
 )
-def remove_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) -> Any:
+def remove_chat(
+    chat_repo: ChatRepositoryDep,
+    chat_id: str,
+    timestamp: float,
+    user_email: UserEmailDep,
+) -> Any:
     logger.info(
         f"Received DELETE Request for chat: {chat_id} and timestamp: {timestamp}"
     )
-    deleted = delete_chat(chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp)
+    if not user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="User not authenticated",
+        )
+    deleted = delete_chat(
+        chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp, user_email=user_email
+    )
     if not deleted:
         raise HTTPException(
             status_code=404,
@@ -84,13 +120,23 @@ def remove_chat(chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float) ->
 
 @router.websocket("/chat/text_ws/{chat_id}/{timestamp}")
 async def websocket_text_generation_endpoint(
-    websocket: WebSocket, chat_repo: ChatRepositoryDep, chat_id: str, timestamp: float
+    websocket: WebSocket,
+    chat_repo: ChatRepositoryDep,
+    chat_id: str,
+    timestamp: float,
+    user_email: UserEmailDep,
 ):
     """This websocket endpoint handles the text generation for a chat."""
     await websocket.accept()
 
     active_chat_id = None if chat_id == "new" else chat_id
     active_timestamp = None if timestamp == 0 else timestamp
+
+    if not user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="User not authenticated",
+        )
 
     while True:
         try:
@@ -107,11 +153,9 @@ async def websocket_text_generation_endpoint(
 
             if active_chat_id is None and active_timestamp is None:
                 try:
-                    logger.debug(
-                        f"Creating new chat for user: {data.get('user_email')}"
-                    )
+                    logger.debug(f"Creating new chat for user: {user_email}")
                     chat_in = ChatCreate(
-                        user_email=data.get("user_email"),
+                        user_email=user_email,
                         messages=[
                             MessageCreate.model_validate(m) for m in data["messages"]
                         ],
@@ -120,7 +164,7 @@ async def websocket_text_generation_endpoint(
                     active_chat_id = chat.chat_id
                     active_timestamp = chat.timestamp
                     logger.debug(
-                        f"Created new chat for user: {data.get('user_email')} "
+                        f"Created new chat for user: {user_email} "
                         f"with chat_id: {active_chat_id} and "
                         f"timestamp: {active_timestamp}"
                     )
@@ -144,12 +188,21 @@ async def websocket_text_generation_endpoint(
                     new_messages = [
                         MessageCreate.model_validate(m) for m in data["messages"]
                     ]
-                    append_messages(
+                    result_of_append = append_messages(
                         chat_repo=chat_repo,
                         chat_id=active_chat_id,
                         timestamp=active_timestamp,
                         messages=new_messages,
+                        user_email=user_email,
                     )
+                    if not result_of_append:
+                        await websocket.send_json(
+                            WebSocketMessage(
+                                type=WebSocketMessageType.ERROR,
+                                content="Failed to append messages",
+                            ).model_dump()
+                        )
+                        continue
                 except Exception as e:
                     await websocket.send_json(
                         WebSocketMessage(
@@ -184,6 +237,7 @@ async def websocket_text_generation_endpoint(
                     chat_id=active_chat_id,
                     timestamp=active_timestamp,
                     messages=[ai_message],
+                    user_email=user_email,
                 )
                 logger.debug(
                     f"Appended AI message to chat: {active_chat_id} "

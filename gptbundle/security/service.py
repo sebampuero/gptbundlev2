@@ -1,7 +1,9 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 import jwt
+from fastapi import Cookie
 from passlib.context import CryptContext
 
 from gptbundle.common.config import settings
@@ -41,16 +43,22 @@ def generate_refresh_token(subject: str) -> str:
     )
 
 
-def validate_jwt_token(token: str) -> bool:
+def get_current_user(
+    token: Annotated[str | None, Cookie(alias="access_token")] = None,
+) -> str | None:
+    if not token:
+        return None
     try:
-        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        return True
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+        return payload.get("sub")
     except jwt.ExpiredSignatureError:
         logger.error(f"Token expired: {token}")
-        return False
+        return None
     except jwt.InvalidTokenError:
         logger.error(f"Invalid token: {token}")
-        return False
+        return None
     except Exception as e:
         logger.error(f"Unknown error when validating token: {e}")
-        return False
+        return None

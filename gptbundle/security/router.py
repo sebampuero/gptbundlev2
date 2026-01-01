@@ -5,7 +5,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Response
 
 from gptbundle.common.config import settings
 
-from .service import generate_access_token, validate_jwt_token
+from .service import generate_access_token, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def refresh_token(
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token is required")
 
-    if not validate_jwt_token(token=refresh_token):
+    if not get_current_user(token=refresh_token):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     access_token = generate_access_token(username=refresh_token)

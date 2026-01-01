@@ -39,7 +39,7 @@ def test_create_chat(cleanup_chats: list):
     assert chat.messages[0].content == "Hello"
     assert chat.messages[0].role == MessageRole.ASSISTANT
 
-    db_chat = get_chat(chat_id, timestamp, chat_repo)
+    db_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
     assert db_chat is not None
     assert db_chat.chat_id == chat_id
     assert db_chat.user_email == user_email
@@ -67,7 +67,7 @@ def test_create_chat_with_no_messages(cleanup_chats: list):
     assert chat.user_email == user_email
     assert len(chat.messages) == 0
 
-    db_chat = get_chat(chat_id, timestamp, chat_repo)
+    db_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
     assert db_chat is not None
     assert db_chat.chat_id == chat_id
     assert db_chat.user_email == user_email
@@ -96,11 +96,11 @@ def test_get_chat(cleanup_chats: list):
     chat = create_chat(chat_in, chat_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
 
-    found_chat = get_chat(chat_id, timestamp, chat_repo)
+    found_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
     assert found_chat is not None
     assert found_chat.chat_id == chat_id
 
-    not_found = get_chat("nonexistent_id", timestamp, chat_repo)
+    not_found = get_chat("nonexistent_id", timestamp, chat_repo, user_email)
     assert not_found is None
 
 
@@ -208,7 +208,9 @@ def test_append_messages(cleanup_chats: list):
         ),
     ]
 
-    updated_chat = append_messages(chat_id, timestamp, new_messages, chat_repo)
+    updated_chat = append_messages(
+        chat_id, timestamp, new_messages, chat_repo, user_email
+    )
     assert updated_chat
 
 
@@ -235,21 +237,21 @@ def test_delete_chat(cleanup_chats: list):
     # No need to add to cleanup_chats since we're deleting it
 
     # Verify the chat exists
-    found_chat = get_chat(chat_id, timestamp, chat_repo)
+    found_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
     assert found_chat is not None
 
     # Delete the chat
-    deleted = delete_chat(chat_id, timestamp, chat_repo)
+    deleted = delete_chat(chat_id, timestamp, chat_repo, user_email)
     assert deleted is True
 
     # Verify the chat no longer exists
-    deleted_chat = get_chat(chat_id, timestamp, chat_repo)
+    deleted_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
     assert deleted_chat is None
 
     # Deleting a non-existent chat should return False
-    deleted_again = delete_chat(chat_id, timestamp, chat_repo)
+    deleted_again = delete_chat(chat_id, timestamp, chat_repo, user_email)
     assert deleted_again is False
 
     # Deleting with wrong chat_id should return False
-    deleted_wrong_id = delete_chat("nonexistent_id", timestamp, chat_repo)
+    deleted_wrong_id = delete_chat("nonexistent_id", timestamp, chat_repo, user_email)
     assert deleted_wrong_id is False

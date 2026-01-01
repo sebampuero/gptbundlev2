@@ -1,7 +1,11 @@
+import logging
+
 from pynamodb.exceptions import DeleteError
 
 from .models import Chat as ChatModel
 from .schemas import Chat, ChatCreate, MessageCreate
+
+logger = logging.getLogger(__name__)
 
 
 class ChatRepository:
@@ -14,34 +18,74 @@ class ChatRepository:
             messages=messages_data,
         )
         created_chat.save()
+        logger.debug(
+            f"Created chat for user: {chat_in.user_email} "
+            f"with chat_id: {chat_in.chat_id} and "
+            f"timestamp: {chat_in.timestamp}"
+        )
         return Chat.model_validate(created_chat)
 
-    def get_chat(self, chat_id: str, timestamp: float) -> Chat | None:
+    def get_chat(self, chat_id: str, timestamp: float, user_email: str) -> Chat | None:
         try:
             chat_model = ChatModel.get(chat_id, timestamp)
+            if chat_model.user_email != user_email:
+                logger.info(
+                    f"User: {user_email} is not authorized "
+                    f"to retrieve chat: {chat_id} and "
+                    f"timestamp: {timestamp}"
+                )
+                return None
+            logger.debug(
+                f"Retrieved chat for user: {user_email} "
+                f"with chat_id: {chat_id} and "
+                f"timestamp: {timestamp}"
+            )
             return self._create_chat_from_model(chat_model)
         except ChatModel.DoesNotExist:
             return None
 
     def get_chats_by_user_email(self, user_email: str) -> list[Chat]:
         chats = ChatModel.user_email_index.query(user_email)
+        logger.debug(f"Retrieved chats for user: {user_email}")
         return [self._create_chat_from_model(chat) for chat in chats]
 
     def append_messages(
-        self, chat_id: str, timestamp: float, messages: list[MessageCreate]
+        self,
+        chat_id: str,
+        timestamp: float,
+        messages: list[MessageCreate],
+        user_email: str,
     ) -> bool:
         try:
             chat_model = ChatModel.get(chat_id, timestamp)
+            if chat_model.user_email != user_email:
+                logger.info(
+                    f"User: {user_email} is not authorized to "
+                    f"append messages to chat: {chat_id} and "
+                    f"timestamp: {timestamp}"
+                )
+                return False
             chat_model.messages.extend([msg.model_dump() for msg in messages])
             chat_model.save()
+            logger.debug(
+                f"Appended messages to chat: {chat_id} and timestamp: {timestamp}"
+            )
             return True
         except ChatModel.DoesNotExist:
             return False
 
-    def delete_chat(self, chat_id: str, timestamp: float) -> bool:
+    def delete_chat(self, chat_id: str, timestamp: float, user_email: str) -> bool:
         try:
             chat_model = ChatModel.get(chat_id, timestamp)
+            if chat_model.user_email != user_email:
+                logger.info(
+                    f"User: {user_email} is not authorized to "
+                    f"delete chat: {chat_id} and "
+                    f"timestamp: {timestamp}"
+                )
+                return False
             chat_model.delete()
+            logger.debug(f"Deleted chat: {chat_id} and timestamp: {timestamp}")
             return True
         except (ChatModel.DoesNotExist, DeleteError):
             return False
