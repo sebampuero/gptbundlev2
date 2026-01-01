@@ -5,11 +5,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 from gptbundle.common.config import settings
+from gptbundle.messaging.repository import ChatRepository
 from gptbundle.messaging.schemas import (
+    ChatCreate,
+    MessageCreate,
     MessageRole,
     WebSocketMessage,
     WebSocketMessageType,
 )
+from gptbundle.messaging.service import create_chat
 
 
 def is_valid_uuid4(uuid_string: str) -> bool:
@@ -20,57 +24,37 @@ def is_valid_uuid4(uuid_string: str) -> bool:
         return False
 
 
-def test_new_chat_success(client: TestClient, cleanup_chats: list):
-    user_email = "test_api@example.com"
+def create_test_chat(
+    chat_id: str | None = None,
+    timestamp: float | None = None,
+    user_email: str = "test@example.com",
+    content: str = "Test message",
+) -> tuple[str, float]:
+    chat_repo = ChatRepository()
+    kwargs = {
+        "user_email": user_email,
+        "messages": [
+            MessageCreate(
+                content=content,
+                role=MessageRole.USER,
+                message_type="text",
+                llm_model="gpt4",
+            )
+        ],
+    }
+    if chat_id is not None:
+        kwargs["chat_id"] = chat_id
+    if timestamp is not None:
+        kwargs["timestamp"] = timestamp
 
-    response = client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "user_email": user_email,
-            "messages": [
-                {
-                    "content": "Hello API",
-                    "role": MessageRole.USER,
-                    "message_type": "text",
-                    "llm_model": "gpt4",
-                }
-            ],
-        },
-    )
-    assert response.status_code == 200
-    content = response.json()
-    assert is_valid_uuid4(content["chat_id"])
-    assert isinstance(content["timestamp"], float)
-    assert content["timestamp"] < datetime.now().timestamp()
-    assert content["user_email"] == user_email
-    assert len(content["messages"]) == 1
-    assert content["messages"][0]["content"] == "Hello API"
-
-    cleanup_chats.append((content["chat_id"], content["timestamp"]))
+    chat_in = ChatCreate(**kwargs)
+    chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
+    return chat.chat_id, chat.timestamp
 
 
 def test_retrieve_chat_success(client: TestClient, cleanup_chats: list):
-    chat_id = "test_get_api_chat"
-    timestamp = datetime.now().timestamp()
     user_email = "test_get_api@example.com"
-
-    # Create chat first
-    client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "chat_id": chat_id,
-            "timestamp": timestamp,
-            "user_email": user_email,
-            "messages": [
-                {
-                    "content": "Found me",
-                    "role": MessageRole.USER,
-                    "message_type": "text",
-                    "llm_model": "gpt4",
-                }
-            ],
-        },
-    )
+    chat_id, timestamp = create_test_chat(user_email=user_email, content="Found me")
     cleanup_chats.append((chat_id, timestamp))
 
     # Retrieve it
@@ -92,44 +76,13 @@ def test_retrieve_chat_not_found(client: TestClient):
 
 def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
     user_email = "multi_chat_user@example.com"
-    timestamp = datetime.now().timestamp()
 
     # Create two chats
-    client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "chat_id": "chat_1",
-            "timestamp": timestamp,
-            "user_email": user_email,
-            "messages": [
-                {
-                    "content": "Msg 1",
-                    "role": MessageRole.USER,
-                    "message_type": "text",
-                    "llm_model": "gpt4",
-                }
-            ],
-        },
-    )
-    cleanup_chats.append(("chat_1", timestamp))
+    c1_id, c1_ts = create_test_chat(user_email=user_email, content="Msg 1")
+    cleanup_chats.append((c1_id, c1_ts))
 
-    client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "chat_id": "chat_2",
-            "timestamp": timestamp + 1,
-            "user_email": user_email,
-            "messages": [
-                {
-                    "content": "Msg 2",
-                    "role": MessageRole.USER,
-                    "message_type": "text",
-                    "llm_model": "gpt4",
-                }
-            ],
-        },
-    )
-    cleanup_chats.append(("chat_2", timestamp + 1))
+    c2_id, c2_ts = create_test_chat(user_email=user_email, content="Msg 2")
+    cleanup_chats.append((c2_id, c2_ts))
 
     # Retrieve all
     response = client.get(
@@ -148,26 +101,9 @@ def test_retrieve_chats_not_found(client: TestClient):
 
 
 def test_delete_chat_success(client: TestClient, cleanup_chats: list):
-    chat_id = "test_delete_api_chat"
-    timestamp = datetime.now().timestamp()
     user_email = "test_delete_api@example.com"
-
-    # Create chat first
-    client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "chat_id": chat_id,
-            "timestamp": timestamp,
-            "user_email": user_email,
-            "messages": [
-                {
-                    "content": "To be deleted",
-                    "role": MessageRole.USER,
-                    "message_type": "text",
-                    "llm_model": "gpt4",
-                }
-            ],
-        },
+    chat_id, timestamp = create_test_chat(
+        user_email=user_email, content="To be deleted"
     )
     # No need to add to cleanup_chats since we're deleting it
 
@@ -240,22 +176,7 @@ def test_websocket_chat_endpoint_existing_chat_several_messages(
     chat_id = "some_test_id"
     timestamp = datetime.now().timestamp()
     user_email = "test@email.com"
-    client.post(
-        f"{settings.API_V1_STR}/messaging/chat",
-        json={
-            "chat_id": chat_id,
-            "timestamp": timestamp,
-            "user_email": user_email,
-            "messages": [
-                {
-                    "content": "Dummy",
-                    "role": MessageRole.USER,
-                    "message_type": "text",
-                    "llm_model": "gpt4",
-                }
-            ],
-        },
-    )
+    chat_id, timestamp = create_test_chat(user_email=user_email, content="Dummy")
     cleanup_chats.append((chat_id, timestamp))
     chat_payload = {
         "user_email": user_email,

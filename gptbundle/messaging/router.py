@@ -30,13 +30,6 @@ router = APIRouter()
 ChatRepositoryDep = Annotated[ChatRepository, Depends(ChatRepository)]
 
 
-@router.post("/chat", response_model=Chat)
-def new_chat(chat_repo: ChatRepositoryDep, chat_in: ChatCreate) -> Any:
-    logger.info(f"Received POST Request for new chat: {chat_in}")
-    chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
-    return chat
-
-
 @router.get(
     "/chat/{chat_id}/{timestamp}",
     response_model=Chat,
