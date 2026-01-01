@@ -63,6 +63,10 @@ def test_login_user_success(
     )
     assert response.status_code == 200
     content = response.json()
+    access_token = response.cookies.get("access_token")
+    refresh_token = response.cookies.get("refresh_token")
+    assert access_token is not None
+    assert refresh_token is not None
     assert content["email"] == "login_test@example.com"
 
 
