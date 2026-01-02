@@ -12,6 +12,7 @@ import {
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { useAuth } from '../../../context/AuthContext';
 
 export const LoginForm: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -19,6 +20,7 @@ export const LoginForm: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,7 +28,8 @@ export const LoginForm: React.FC = () => {
         setError(null);
 
         try {
-            await authService.login({ username, password });
+            const user = await authService.login({ username, password });
+            login(user);
             navigate('/chat');
         } catch (err: any) {
             setError(err.message || 'Check your credentials and try again.');
