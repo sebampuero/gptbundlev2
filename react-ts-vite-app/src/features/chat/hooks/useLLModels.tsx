@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import type { LLMModel } from "../types";
+import { apiClient } from "../../../api/client";
 
 export const useLLModels = () => {
     const [models, setModels] = useState<LLMModel[]>([]);
 
     const fetchModels = async () => {
-        const response = await fetch("http://localhost:8000/api/v1/llm/models");
-        const data = await response.json();
-        setModels(data);
+        try {
+            const response = await apiClient.get('/llm/models');
+            setModels(response.data);
+        } catch (error) {
+            console.error("Failed to fetch models", error);
+        }
     };
 
     useEffect(() => {

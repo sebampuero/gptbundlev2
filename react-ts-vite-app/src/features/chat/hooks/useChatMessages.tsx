@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { apiClient } from "../../../api/client";
 
 export type MessageRole = "user" | "assistant";
 
@@ -116,6 +117,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     }, [chatId, timestamp]);
 
     useEffect(() => {
+        // ... inside component
         const fetchHistory = async () => {
             if (chatId === "new") {
                 setMessages([]);
@@ -123,17 +125,10 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/messaging/chat/${chatId}/${timestamp}`, {
-                    credentials: 'include',
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.messages) {
-                        setMessages(data.messages);
-                    }
-                } else {
-                    console.error("Failed to fetch chat history:", response.statusText);
-                    setMessages([]);
+                const response = await apiClient.get(`/messaging/chat/${chatId}/${timestamp}`);
+                const data = response.data;
+                if (data && data.messages) {
+                    setMessages(data.messages);
                 }
             } catch (error) {
                 console.error("Error fetching chat history:", error);

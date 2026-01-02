@@ -1,41 +1,14 @@
+import { apiClient } from '../../../api/client';
 import type { UserLogin, UserRegister, UserResponse } from '../types';
-
-const BASE_URL = 'http://localhost:8000/api/v1/user';
 
 export const authService = {
     async login(credentials: UserLogin): Promise<UserResponse> {
-        const response = await fetch(`${BASE_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(credentials),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Login failed');
-        }
-
-        return response.json();
+        const response = await apiClient.post<UserResponse>('/user/login', credentials);
+        return response.data;
     },
 
     async register(userData: UserRegister): Promise<UserResponse> {
-        const response = await fetch(`${BASE_URL}/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(userData),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Registration failed');
-        }
-
-        return response.json();
+        const response = await apiClient.post<UserResponse>('/user/register', userData);
+        return response.data;
     },
 };
