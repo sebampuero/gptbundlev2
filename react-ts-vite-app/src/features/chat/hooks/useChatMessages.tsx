@@ -123,7 +123,9 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/messaging/chat/${chatId}/${timestamp}`);
+                const response = await fetch(`http://localhost:8000/api/v1/messaging/chat/${chatId}/${timestamp}`, {
+                    credentials: 'include',
+                });
                 if (response.ok) {
                     const data = await response.json();
                     if (data && data.messages) {

@@ -13,7 +13,9 @@ export const useChats = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${BASE_URL}/chats`);
+            const response = await fetch(`${BASE_URL}/chats`, {
+                credentials: 'include',
+            });
             if (!response.ok) {
                 if (response.status === 404) {
                     setChats([]);
@@ -40,6 +42,7 @@ export const useChats = () => {
         try {
             const response = await fetch(`${BASE_URL}/chat/${chatId}/${timestamp}`, {
                 method: "DELETE",
+                credentials: 'include',
             });
 
             if (!response.ok) {
