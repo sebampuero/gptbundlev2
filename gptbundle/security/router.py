@@ -19,10 +19,11 @@ def refresh_token(
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token is required")
 
-    if not get_current_user(token=refresh_token):
+    user_email = get_current_user(token=refresh_token)
+    if not user_email:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    access_token = generate_access_token(username=refresh_token)
+    access_token = generate_access_token(email=user_email)
     response.set_cookie(
         key="access_token",
         value=access_token,

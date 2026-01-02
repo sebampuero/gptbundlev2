@@ -17,7 +17,7 @@ export const ChatPage = () => {
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
     const { messages, sendMessage, isConnected, startNewChat, isProcessingMessage } = useChatMessages({ chatId, timestamp });
-    const { chats, isLoading, error, deleteChat, refreshChats } = useChats("test-live@example.com");
+    const { chats, isLoading, error, deleteChat, refreshChats } = useChats();
 
     const handleStartNewChat = () => {
         startNewChat();

@@ -47,8 +47,8 @@ def login_user(session: SessionDep, user_in: UserLogin, response: Response) -> A
             status_code=403,
             detail="Invalid username or password",
         )
-    access_token = generate_access_token(user.username)
-    refresh_token = generate_refresh_token(user.username)
+    access_token = generate_access_token(user.email)
+    refresh_token = generate_refresh_token(user.email)
     response.set_cookie(
         key="access_token",
         value=access_token,

@@ -3,19 +3,17 @@ import type { Chat } from "../types";
 
 const BASE_URL = "http://localhost:8000/api/v1/messaging";
 
-export const useChats = (userEmail: string) => {
+export const useChats = () => {
     const [chats, setChats] = useState<Chat[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchChats = useCallback(async () => {
-        if (!userEmail) return;
-
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${BASE_URL}/chats/${userEmail}`);
+            const response = await fetch(`${BASE_URL}/chats`);
             if (!response.ok) {
                 if (response.status === 404) {
                     setChats([]);
@@ -30,7 +28,7 @@ export const useChats = (userEmail: string) => {
         } finally {
             setIsLoading(false);
         }
-    }, [userEmail]);
+    }, []);
 
     useEffect(() => {
         fetchChats();
