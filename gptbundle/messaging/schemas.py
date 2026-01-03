@@ -39,6 +39,11 @@ class Chat(ChatCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ChatPaginatedResponse(BaseModel):
+    items: list[Chat]
+    last_eval_key: dict | None = None
+
+
 class WebSocketMessage(BaseModel):
     type: WebSocketMessageType
     chat_id: str | None = None

@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime
 
@@ -100,8 +101,9 @@ def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
     )
     assert response.status_code == 200
     content = response.json()
-    assert isinstance(content, list)
-    assert len(content) == 2
+    assert isinstance(content, dict)
+    assert "items" in content
+    assert len(content["items"]) == 2
 
 
 def test_retrieve_chats_not_found(client: TestClient):
@@ -111,6 +113,38 @@ def test_retrieve_chats_not_found(client: TestClient):
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Chats not found"
+
+
+def test_retrieve_chats_pagination(client: TestClient, cleanup_chats: list):
+    user_email = "paginated_user@example.com"
+
+    # Create 3 chats
+    for i in range(3):
+        c_id, c_ts = create_test_chat(user_email=user_email, content=f"Msg {i}")
+        cleanup_chats.append((c_id, c_ts))
+
+    token = generate_access_token(user_email)
+
+    # Test limit=2
+    response = client.get(
+        f"{settings.API_V1_STR}/messaging/chats?limit=2",
+        cookies={"access_token": token},
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert len(content["items"]) == 2
+    assert content["last_eval_key"] is not None
+
+    # Test second page
+    last_key = json.dumps(content["last_eval_key"])
+    response = client.get(
+        f"{settings.API_V1_STR}/messaging/chats?limit=2&last_eval_key={last_key}",
+        cookies={"access_token": token},
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert len(content["items"]) == 1
+    assert content["last_eval_key"] is None
 
 
 def test_delete_chat_success(client: TestClient, cleanup_chats: list):
@@ -195,7 +229,7 @@ def test_websocket_chat_endpoint_existing_chat_several_messages(
 ):
     chat_id = "some_test_id"
     timestamp = datetime.now().timestamp()
-    user_email = "test@email.com"
+    user_email = "websocket_test_unique@email.com"
     chat_id, timestamp = create_test_chat(user_email=user_email, content="Dummy")
     cleanup_chats.append((chat_id, timestamp))
     chat_payload = {
@@ -251,4 +285,6 @@ def test_websocket_chat_endpoint_existing_chat_several_messages(
     )
     assert response.status_code == 200
     content = response.json()
-    assert len(content) == 1  # should exist only one chat and not have created two
+    assert (
+        len(content["items"]) == 1
+    )  # should exist only one chat and not have created two

@@ -7,7 +7,7 @@ from gptbundle.messaging.service import (
     create_chat,
     delete_chat,
     get_chat,
-    get_chats_by_user_email,
+    get_chats_by_user_email_paginated,
 )
 
 
@@ -104,7 +104,7 @@ def test_get_chat(cleanup_chats: list):
     assert not_found is None
 
 
-def test_get_chats_by_useremail(cleanup_chats: list):
+def test_get_chats_by_useremail_paginated(cleanup_chats: list):
     chat_repo = ChatRepository()
 
     timestamp = datetime.now().timestamp()
@@ -129,7 +129,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
 
     chat_in_2 = ChatCreate(
         chat_id="chat2",
-        timestamp=timestamp,
+        timestamp=timestamp + 1,
         user_email=user_email_1,
         messages=[
             MessageCreate(
@@ -141,7 +141,7 @@ def test_get_chats_by_useremail(cleanup_chats: list):
         ],
     )
     create_chat(chat_in_2, chat_repo)
-    cleanup_chats.append(("chat2", timestamp))
+    cleanup_chats.append(("chat2", timestamp + 1))
 
     chat_in_3 = ChatCreate(
         chat_id="chat3",
@@ -159,16 +159,71 @@ def test_get_chats_by_useremail(cleanup_chats: list):
     create_chat(chat_in_3, chat_repo)
     cleanup_chats.append(("chat3", timestamp))
 
-    user1_chats = get_chats_by_user_email(user_email_1, chat_repo)
+    user1_response = get_chats_by_user_email_paginated(user_email_1, chat_repo)
+    user1_chats = user1_response["items"]
     assert len(user1_chats) == 2
     for chat in user1_chats:
         assert chat.user_email == user_email_1
 
-    user2_chats = get_chats_by_user_email(user_email_2, chat_repo)
+    user2_response = get_chats_by_user_email_paginated(user_email_2, chat_repo)
+    user2_chats = user2_response["items"]
     assert len(user2_chats) == 1
     assert user2_chats[0].user_email == user_email_2
 
-    assert len(get_chats_by_user_email("nonexistent@example.com", chat_repo)) == 0
+    empty_response = get_chats_by_user_email_paginated(
+        "nonexistent@example.com", chat_repo
+    )
+    assert len(empty_response["items"]) == 0
+
+
+def test_get_chats_paginated_multi_page(cleanup_chats: list):
+    chat_repo = ChatRepository()
+
+    timestamp = datetime.now().timestamp()
+    user_email_1 = "user_multi@example.com"
+
+    # Create 5 chats for user 1
+    for i in range(5):
+        chat_id = f"multi_chat_{i}"
+        chat_in = ChatCreate(
+            chat_id=chat_id,
+            timestamp=timestamp + i,
+            user_email=user_email_1,
+            messages=[
+                MessageCreate(
+                    content=f"Hello {i}",
+                    role=MessageRole.ASSISTANT,
+                    message_type="text",
+                    llm_model="gpt4",
+                )
+            ],
+        )
+        create_chat(chat_in, chat_repo)
+        cleanup_chats.append((chat_id, timestamp + i))
+
+    # Test pagination with limit 2
+    response1 = get_chats_by_user_email_paginated(user_email_1, chat_repo, limit=2)
+    assert len(response1["items"]) == 2
+    assert response1["last_eval_key"] is not None
+
+    # Test second page
+    response2 = get_chats_by_user_email_paginated(
+        user_email_1, chat_repo, limit=2, last_evaluated_key=response1["last_eval_key"]
+    )
+    assert len(response2["items"]) == 2
+    assert response2["last_eval_key"] is not None
+
+    # Check that they are different
+    chat_ids_1 = {c.chat_id for c in response1["items"]}
+    chat_ids_2 = {c.chat_id for c in response2["items"]}
+    assert chat_ids_1.isdisjoint(chat_ids_2)
+
+    # Test third page (last item)
+    response3 = get_chats_by_user_email_paginated(
+        user_email_1, chat_repo, limit=2, last_evaluated_key=response2["last_eval_key"]
+    )
+    assert len(response3["items"]) == 1
+    assert response3["last_eval_key"] is None
 
 
 def test_append_messages(cleanup_chats: list):

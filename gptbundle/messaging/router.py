@@ -1,7 +1,8 @@
+import json
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from gptbundle.llm.service import generate_text_response
@@ -11,6 +12,7 @@ from .repository import ChatRepository
 from .schemas import (
     Chat,
     ChatCreate,
+    ChatPaginatedResponse,
     MessageCreate,
     MessageRole,
     WebSocketMessage,
@@ -21,7 +23,7 @@ from .service import (
     create_chat,
     delete_chat,
     get_chat,
-    get_chats_by_user_email,
+    get_chats_by_user_email_paginated,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,26 +67,49 @@ def retrieve_chat(
 
 @router.get(
     "/chats",
-    response_model=list[Chat],
+    response_model=ChatPaginatedResponse,
     responses={
         404: {"description": "Chats not found"},
         401: {"description": "User not authenticated"},
     },
 )
-def retrieve_chats(chat_repo: ChatRepositoryDep, user_email: UserEmailDep) -> Any:
+def retrieve_chats(
+    chat_repo: ChatRepositoryDep,
+    user_email: UserEmailDep,
+    limit: int | None = Query(None, description="Limit the number of chats returned"),
+    last_eval_key: str | None = Query(
+        None, description="The last evaluated key for pagination (JSON string)"
+    ),
+) -> Any:
     logger.info(f"Received GET Request for chats of user: {user_email}")
     if not user_email:
         raise HTTPException(
             status_code=401,
             detail="User not authenticated",
         )
-    chats = get_chats_by_user_email(chat_repo=chat_repo, user_email=user_email)
-    if not chats:
+
+    evaluated_key = None
+    if last_eval_key:
+        try:
+            evaluated_key = json.loads(last_eval_key)
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid last_eval_key format. Expected JSON string.",
+            ) from e
+
+    chats_response = get_chats_by_user_email_paginated(
+        chat_repo=chat_repo,
+        user_email=user_email,
+        limit=limit,
+        last_evaluated_key=evaluated_key,
+    )
+    if not chats_response["items"]:
         raise HTTPException(
             status_code=404,
             detail="Chats not found",
         )
-    return chats
+    return chats_response
 
 
 @router.delete(

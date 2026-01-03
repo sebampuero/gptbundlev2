@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from pynamodb.exceptions import DeleteError
 
@@ -48,6 +49,27 @@ class ChatRepository:
         chats = ChatModel.user_email_index.query(user_email)
         logger.debug(f"Retrieved chats for user: {user_email}")
         return [self._create_chat_from_model(chat) for chat in chats]
+
+    def get_chats_by_user_email_paginated(
+        self,
+        user_email: str,
+        limit: int | None = None,
+        last_evaluated_key: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        query_args: dict[str, Any] = {"scan_index_forward": False}
+        if limit:
+            query_args["limit"] = limit
+        if last_evaluated_key:
+            query_args["last_evaluated_key"] = last_evaluated_key
+
+        chats_iterator = ChatModel.user_email_index.query(user_email, **query_args)
+        items = [self._create_chat_from_model(chat) for chat in chats_iterator]
+
+        logger.debug(f"Retrieved paginated chats for user: {user_email}")
+        return {
+            "items": items,
+            "last_eval_key": chats_iterator.last_evaluated_key,
+        }
 
     def append_messages(
         self,
