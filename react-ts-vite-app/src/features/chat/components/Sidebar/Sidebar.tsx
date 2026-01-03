@@ -13,6 +13,8 @@ interface SidebarProps {
     isLoading: boolean;
     error: string | null;
     onDeleteChat: (chatId: string, timestamp: number) => Promise<void>;
+    onLoadMoreChats: (newChatRefresh: boolean) => void;
+    noMoreChatsToLoad: boolean;
 }
 
 export const Sidebar = ({
@@ -23,7 +25,9 @@ export const Sidebar = ({
     chats,
     isLoading,
     error,
-    onDeleteChat
+    onDeleteChat,
+    onLoadMoreChats,
+    noMoreChatsToLoad
 }: SidebarProps) => {
 
     return (
@@ -87,18 +91,21 @@ export const Sidebar = ({
                     </Box>
                 )}
             </VStack>
-            <Button
-                variant="ghost"
-                width="full"
-                justifyContent="space-between"
-                size="sm"
-                mt={4}
-                fontWeight="normal"
-                color="gray.600"
-            >
-                More
-                <LuChevronDown size={14} />
-            </Button>
+            {!noMoreChatsToLoad && (
+                <Button
+                    variant="ghost"
+                    width="full"
+                    justifyContent="space-between"
+                    size="sm"
+                    mt={4}
+                    fontWeight="normal"
+                    color="gray.600"
+                    onClick={() => onLoadMoreChats(false)}
+                >
+                    More
+                    <LuChevronDown size={14} />
+                </Button>
+            )}
         </Box>
     );
 };

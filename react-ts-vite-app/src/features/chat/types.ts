@@ -15,6 +15,11 @@ export interface Chat {
     messages: Message[];
 }
 
+export interface ChatPaginatedResponse {
+    items: Chat[];
+    last_eval_key: string | null;
+}
+
 export interface LLMModel {
     model_name: string;
     supports_input_vision: boolean;

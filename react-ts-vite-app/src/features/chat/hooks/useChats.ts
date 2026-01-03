@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import type { Chat } from "../types";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { Chat, ChatPaginatedResponse } from "../types";
 import { apiClient } from "../../../api/client";
 import { AxiosError } from "axios";
 
@@ -8,16 +8,33 @@ export const useChats = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [noMoreChatsToLoad, setNoMoreChatsToLoad] = useState(false);
+    const lastEvalKey = useRef<string | null>(null);
+    const paginationLimit = 20;
 
-    const fetchChats = useCallback(async () => {
+    const fetchChats = useCallback(async (newChatRefresh: boolean = false) => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await apiClient.get<Chat[]>('/messaging/chats');
-            setChats(response.data);
+            if (newChatRefresh) {
+                lastEvalKey.current = null;
+                setChats([]);
+            }
+
+            const response = await apiClient.get<ChatPaginatedResponse>('/messaging/chats', {
+                params: {
+                    limit: paginationLimit,
+                    ...(lastEvalKey.current && { last_eval_key: JSON.stringify(lastEvalKey.current) }),
+                },
+            });
+
+            setChats(prev => [...prev, ...response.data.items]);
+            lastEvalKey.current = response.data.last_eval_key;
+            setNoMoreChatsToLoad(response.data.last_eval_key === null);
         } catch (err) {
             if (err instanceof AxiosError && err.response?.status === 404) {
                 setChats([]);
+                setNoMoreChatsToLoad(true);
             } else {
                 setError(err instanceof Error ? err.message : "An unknown error occurred");
             }
@@ -44,5 +61,5 @@ export const useChats = () => {
         }
     };
 
-    return { chats, isLoading, isDeleting, error, deleteChat, refreshChats: fetchChats };
+    return { chats, isLoading, isDeleting, error, deleteChat, refreshChats: fetchChats, noMoreChatsToLoad };
 };
