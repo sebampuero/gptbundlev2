@@ -171,10 +171,13 @@ def list_chats():
 def delete_chat(
     chat_id: str = typer.Argument(..., help="The ID of the chat to delete"),
     timestamp: float = typer.Argument(..., help="The timestamp of the chat to delete"),
+    email: str = typer.Argument(
+        ..., help="The email of the user to delete the chat for"
+    ),
 ):
     repo = ChatRepository()
     try:
-        success = repo.delete_chat(chat_id, timestamp)
+        success = repo.delete_chat(chat_id, timestamp, email)
         if success:
             console.print(
                 f"[green]Successfully deleted chat:[/green] {chat_id} at {timestamp}"
@@ -224,7 +227,8 @@ def delete_all_chats():
         count = 0
         repo = ChatRepository()
         for chat in chats:
-            if repo.delete_chat(chat.chat_id, chat.timestamp):
+            email = chat.user_email
+            if repo.delete_chat(chat.chat_id, chat.timestamp, email):
                 count += 1
 
         console.print(f"[green]Successfully deleted {count} chats.[/green]")
