@@ -133,6 +133,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
             } catch (error) {
                 console.error("Error fetching chat history:", error);
                 setMessages([]);
+                window.location.href = '/chat';
             }
         };
 
