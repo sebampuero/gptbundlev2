@@ -77,3 +77,19 @@ def test_login_user_not_found(client: TestClient):
     )
     assert response.status_code == 403
     assert response.json()["detail"] == "Invalid username or password"
+
+
+def test_register_user_disabled(client: TestClient):
+    from unittest.mock import patch
+
+    with patch("gptbundle.user.router.settings.ALLOW_REGISTRATION", False):
+        response = client.post(
+            f"{settings.API_V1_STR}/user/register",
+            json={
+                "email": "disabled@example.com",
+                "password": "password123",
+                "username": "disabled_user",
+            },
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Registration is currently disabled."

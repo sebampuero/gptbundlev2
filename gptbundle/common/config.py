@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
+    ALLOW_REGISTRATION: bool = True
+
     @computed_field  # type: ignore[misc]
     @property
     def sqlalchemy_database_uri(self) -> PostgresDsn:

@@ -21,9 +21,17 @@ logger = logging.getLogger(__name__)
 @router.post(
     "/register",
     response_model=UserResponse,
-    responses={409: {"description": "Username or email is already taken."}},
+    responses={
+        409: {"description": "Username or email is already taken."},
+        422: {"description": "Registration is currently disabled."},
+    },
 )
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+    if not settings.ALLOW_REGISTRATION:
+        raise HTTPException(
+            status_code=422,
+            detail="Registration is currently disabled.",
+        )
     user_create = UserCreate.model_validate(user_in)
     try:
         user = create_user(session=session, user_create=user_create)
