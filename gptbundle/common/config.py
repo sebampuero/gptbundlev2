@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     AWS_REGION: str = "eu-central-1"
     AWS_ENDPOINT_URL_DYNAMODB: str | None = None
 
+    S3_ENDPOINT_URL: str | None = None
+    S3_ACCESS_KEY_ID: str | None = None
+    S3_SECRET_ACCESS_KEY: str | None = None
+    S3_BUCKET_NAME: str = "gptbundle"
+    S3_REGION: str = "us-east-1"
+
     OPENROUTER_API_KEY: str
     OPENROUTER_MODELS_URL: str = "https://openrouter.ai/api/v1/models"
 
