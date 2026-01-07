@@ -21,7 +21,7 @@ class MessageCreate(BaseModel):
     content: str
     role: MessageRole
     message_type: str = "text"
-    media: str | None = None
+    media_s3_keys: list[str] | None = None
     llm_model: str
 
 

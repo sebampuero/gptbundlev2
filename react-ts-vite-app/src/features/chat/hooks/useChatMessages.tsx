@@ -9,6 +9,7 @@ export interface Message {
     llm_model?: string;
     message_type?: string;
     is_loading_message?: boolean;
+    media_s3_keys?: string[];
 }
 
 export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
@@ -17,7 +18,7 @@ export interface WebSocketMessage {
     type: WebSocketMessageType;
     content?: string;
     chat_id?: string;
-    chat_timestamp?: number;
+    chat_timestamp?: string;
 }
 
 export interface ChatMetadata {
@@ -32,6 +33,9 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     const [isProcessingMessage, setIsProcessingMessage] = useState(false);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const isManuallyClosed = useRef(false);
+    const chatIdRef = useRef<string | undefined>(activeChatMetadata?.chatId);
+    const timestampRef = useRef<string | undefined>(activeChatMetadata?.timestamp);
+    const currentMediaS3Keys = useRef<string[]>([]);
 
     const chatId = activeChatMetadata?.chatId || "new";
     const timestamp = activeChatMetadata?.timestamp || "0";
@@ -99,6 +103,11 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                     setIsProcessingMessage(false);
                     break;
 
+                case "chat_created":
+                    chatIdRef.current = data.chat_id;
+                    timestampRef.current = data.chat_timestamp;
+                    break;
+
                 case "error":
                     setMessages((prev) => {
                         const lastMessage = prev[prev.length - 1];
@@ -155,6 +164,11 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
     }, [chatId, timestamp, connect]);
 
+    const uploadImages = useCallback((content: string) => {
+        // we upload the images to the server and it responds back with media s3 keys
+
+    }, []);
+
     const sendMessage = useCallback((content: string, userEmail: string, llm_model: string) => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             setIsProcessingMessage(true);
@@ -184,6 +198,8 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         } else {
             console.error("WebSocket is not open");
         }
+        setIsProcessingMessage(false);
+        currentMediaS3Keys.current = [];
     }, []);
 
     const startNewChat = useCallback(() => {

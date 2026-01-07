@@ -15,6 +15,7 @@ dependencies = [
     "typer>=0.15.1",
     "rich>=13.9.4",
     "pyjwt>=2.10.1",
+    "boto3>=1.35.0",
 ]
 
 [dependency-groups]
@@ -23,6 +24,7 @@ dev = [
     "ruff>=0.8.4",
     "pre-commit>=4.0.1",
     "respx>=0.22.0",
+    "moto[s3]>=5.1.19",
 ]
 
 [tool.ruff]

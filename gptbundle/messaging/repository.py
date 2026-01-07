@@ -122,7 +122,7 @@ class ChatRepository:
                     content=msg.content,
                     role=msg.role,
                     message_type=msg.message_type,
-                    media=msg.media,
+                    media_s3_keys=msg.media_s3_keys,
                     llm_model=msg.llm_model,
                 )
                 for msg in chat_model.messages

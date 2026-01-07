@@ -25,7 +25,7 @@ class MessageItem(MapAttribute):
     content = UnicodeAttribute()
     role = UnicodeAttribute()
     message_type = UnicodeAttribute()
-    media = UnicodeAttribute(null=True)
+    media_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
     llm_model = UnicodeAttribute()
 
 
