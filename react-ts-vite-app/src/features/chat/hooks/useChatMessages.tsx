@@ -190,7 +190,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
             }]);
 
             const payload = {
-                messages: [userMessage],
+                user_message: userMessage,
                 user_email: userEmail,
             };
 

@@ -167,7 +167,7 @@ async def websocket_text_generation_endpoint(
         try:
             data = await websocket.receive_json()
 
-            if "messages" not in data or not isinstance(data["messages"], list):
+            if "user_message" not in data:
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.ERROR,
@@ -175,15 +175,13 @@ async def websocket_text_generation_endpoint(
                     ).model_dump()
                 )
                 continue
-
+            user_message = data["user_message"]
             if active_chat_id is None and active_timestamp is None:
                 try:
                     logger.debug(f"Creating new chat for user: {user_email}")
                     chat_in = ChatCreate(
                         user_email=user_email,
-                        messages=[
-                            MessageCreate.model_validate(m) for m in data["messages"]
-                        ],
+                        messages=[MessageCreate.model_validate(user_message)],
                     )
                     chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
                     active_chat_id = chat.chat_id
@@ -210,9 +208,7 @@ async def websocket_text_generation_endpoint(
                     continue
             else:
                 try:
-                    new_messages = [
-                        MessageCreate.model_validate(m) for m in data["messages"]
-                    ]
+                    new_messages = [MessageCreate.model_validate(user_message)]
                     result_of_append = append_messages(
                         chat_repo=chat_repo,
                         chat_id=active_chat_id,
@@ -237,17 +233,18 @@ async def websocket_text_generation_endpoint(
                     )
                     continue
 
-            last_message = data["messages"][-1]
-            llm_model = last_message.get(
+            llm_model = user_message.get(
                 "llm_model", "openrouter/mistralai/devstral-2512:free"
             )  # default free model
 
             ai_message = MessageCreate(
                 content="", role=MessageRole.ASSISTANT, llm_model=llm_model
             )
-
+            user_chat = get_chat(
+                active_chat_id, active_timestamp, chat_repo, user_email
+            )
             try:
-                async for chunk in await generate_text_response(data):
+                async for chunk in await generate_text_response(user_chat):
                     token = chunk.choices[0].delta.content
                     if token:
                         ai_message.content += token

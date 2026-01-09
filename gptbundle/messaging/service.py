@@ -25,6 +25,13 @@ def get_chats_by_user_email_paginated(
     )
 
 
+def get_chats_by_user_email(
+    user_email: str,
+    chat_repo: ChatRepository,
+) -> list[Chat]:
+    return chat_repo.get_chats_by_user_email(user_email)
+
+
 def append_messages(
     chat_id: str,
     timestamp: float,
