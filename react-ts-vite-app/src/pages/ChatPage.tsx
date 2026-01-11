@@ -16,7 +16,7 @@ export const ChatPage = () => {
 
     // websocket connection with new chat. TODO: pass props chatid and timestamp when
     // clicking on a sidebar item
-    const { messages, sendMessage, isConnected, startNewChat, isProcessingMessage } = useChatMessages({ chatId, timestamp });
+    const { messages, sendMessage, isConnected, startNewChat, isProcessingMessage, uploadImages, removeMediaKey } = useChatMessages({ chatId, timestamp });
     const { chats, isLoading, error, deleteChat, refreshChats, noMoreChatsToLoad } = useChats();
 
     const handleStartNewChat = () => {
@@ -88,8 +88,10 @@ export const ChatPage = () => {
                 <ChatInputArea
                     onShowSidebar={toggleSidebar}
                     isSidebarOpen={isSidebarOpen}
-                    onSendMessage={(content) => sendMessage(content, "test-live@example.com", selectedModel)} // Using test email for now
+                    onSendMessage={(content, presignedUrls) => sendMessage(content, "test-live@example.com", selectedModel, presignedUrls)} // Using test email for now
                     onStartNewChat={handleStartNewChat}
+                    uploadImages={uploadImages}
+                    removeMediaKey={removeMediaKey}
                 />
             </Box>
         </Flex>

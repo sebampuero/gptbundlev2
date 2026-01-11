@@ -27,7 +27,10 @@ export interface ChatMetadata {
     timestamp?: string;
 }
 
+import { useNavigate } from "react-router-dom";
+
 export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
+    const navigate = useNavigate();
     const ws = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
@@ -165,18 +168,41 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
     }, [chatId, timestamp, connect]);
 
-    const uploadImages = useCallback((content: string) => {
+    const uploadImages = useCallback(async (files: File[]) => {
+        const formData = new FormData();
+        files.forEach((file) => {
+            formData.append("files", file);
+        });
 
+        try {
+            const response = await apiClient.post("/storage/upload_media", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            const keys = response.data.keys;
+            currentMediaS3Keys.current = [...currentMediaS3Keys.current, ...keys];
+            return keys;
+        } catch (error) {
+            console.error("Error uploading images:", error);
+            throw error;
+        }
     }, []);
 
-    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string) => {
+    const removeMediaKey = useCallback((key: string) => {
+        currentMediaS3Keys.current = currentMediaS3Keys.current.filter(k => k !== key);
+    }, []);
+
+    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             setIsProcessingMessage(true);
             const userMessage: Message = {
                 role: "user",
                 content,
                 llm_model,
-                message_type: "text"
+                message_type: "text",
+                presigned_urls: presigned_urls, // Store optimistic URLs
+                media_s3_keys: currentMediaS3Keys.current, // Store S3 keys if any
             };
 
             // Optimistically add user message to UI
@@ -190,7 +216,10 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
             }]);
 
             const payload = {
-                user_message: userMessage,
+                user_message: {
+                    ...userMessage,
+                    presigned_urls: undefined, // Don't send local blob URLs to backend
+                },
                 user_email: userEmail,
             };
 
@@ -204,14 +233,16 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
     const startNewChat = useCallback(() => {
         setMessages([]);
-
-    }, []);
+        navigate("/chat");
+    }, [navigate]);
 
     return {
         messages,
         isConnected,
         sendMessage,
         startNewChat,
-        isProcessingMessage
+        isProcessingMessage,
+        uploadImages,
+        removeMediaKey
     };
 }
