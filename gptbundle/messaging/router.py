@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from gptbundle.llm.service import generate_text_response
-from gptbundle.media_storage.storage import generate_presigned_url
+from gptbundle.media_storage.storage import generate_presigned_url, move_file
 from gptbundle.security.service import get_current_user
 
 from .repository import ChatRepository
@@ -181,13 +181,21 @@ async def websocket_text_generation_endpoint(
                     ).model_dump()
                 )
                 continue
-            user_message = data["user_message"]
+
+            user_message = MessageCreate.model_validate(data["user_message"])
+            for s3_key in user_message.media_s3_keys:
+                move_file(s3_key, s3_key.replace("temp/", "permanent/"))
+            user_message.media_s3_keys = [
+                s3_key.replace("temp/", "permanent/")
+                for s3_key in user_message.media_s3_keys
+            ]
+
             if active_chat_id is None and active_timestamp is None:
                 try:
                     logger.debug(f"Creating new chat for user: {user_email}")
                     chat_in = ChatCreate(
                         user_email=user_email,
-                        messages=[MessageCreate.model_validate(user_message)],
+                        messages=[user_message],
                     )
                     chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
                     active_chat_id = chat.chat_id
@@ -214,7 +222,7 @@ async def websocket_text_generation_endpoint(
                     continue
             else:
                 try:
-                    new_messages = [MessageCreate.model_validate(user_message)]
+                    new_messages = [user_message]
                     result_of_append = append_messages(
                         chat_repo=chat_repo,
                         chat_id=active_chat_id,
@@ -239,9 +247,7 @@ async def websocket_text_generation_endpoint(
                     )
                     continue
 
-            llm_model = user_message.get(
-                "llm_model", "openrouter/mistralai/devstral-2512:free"
-            )  # default free model
+            llm_model = user_message.llm_model
 
             ai_message = MessageCreate(
                 content="", role=MessageRole.ASSISTANT, llm_model=llm_model
@@ -249,6 +255,7 @@ async def websocket_text_generation_endpoint(
             user_chat = get_chat(
                 active_chat_id, active_timestamp, chat_repo, user_email
             )
+
             try:
                 async for chunk in await generate_text_response(user_chat):
                     token = chunk.choices[0].delta.content

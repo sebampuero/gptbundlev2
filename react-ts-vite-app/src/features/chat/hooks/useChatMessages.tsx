@@ -166,7 +166,6 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     }, [chatId, timestamp, connect]);
 
     const uploadImages = useCallback((content: string) => {
-        // we upload the images to the server and it responds back with media s3 keys
 
     }, []);
 
