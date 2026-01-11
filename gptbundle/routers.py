@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
 from gptbundle.llm.router import router as llm_router
+from gptbundle.media_storage.storage_router import router as storage_router
 from gptbundle.messaging.router import router as messaging_router
-from gptbundle.messaging.storage_router import router as storage_router
 from gptbundle.security.router import router as security_router
 from gptbundle.user.router import router as user_router
 

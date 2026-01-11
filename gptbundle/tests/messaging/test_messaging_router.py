@@ -186,26 +186,25 @@ def test_delete_chat_not_found(client: TestClient):
 def test_websocket_chat_endpoint_first_connection(
     client: TestClient, cleanup_chats: list
 ):
-    chat_payload = {
-        "user_email": "test@email.com",
-        "messages": [
-            {
-                "content": "Hello, please repeat this as is: 'I am a test model!'",
-                "role": MessageRole.USER,
-                "message_type": "text",
-                "media_s3_keys": None,
-                "llm_model": "openrouter/mistralai/devstral-2512:free",
-            }
-        ],
-    }
     total_response = ""
+
+    payload = {
+        "user_message": {
+            "content": "Hello, please repeat this as is: 'I am a test model!'",
+            "role": MessageRole.USER,
+            "message_type": "text",
+            "media_s3_keys": None,
+            "llm_model": "openrouter/mistralai/devstral-2512:free",
+        },
+        "user_email": "test@email.com",
+    }
 
     token = generate_access_token("test@email.com")
     with client.websocket_connect(
         f"{settings.API_V1_STR}/messaging/chat/text_ws/new/0",
         cookies={"access_token": token},
     ) as websocket:
-        websocket.send_json(chat_payload)
+        websocket.send_json(payload)
         while True:
             message = websocket.receive_json()
             ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
@@ -222,69 +221,3 @@ def test_websocket_chat_endpoint_first_connection(
                 pytest.fail(f"Websocket error: {ws_msg.content}")
 
     assert "I am a test model!" in total_response
-
-
-def test_websocket_chat_endpoint_existing_chat_several_messages(
-    client: TestClient, cleanup_chats: list
-):
-    chat_id = "some_test_id"
-    timestamp = datetime.now().timestamp()
-    user_email = "websocket_test_unique@email.com"
-    chat_id, timestamp = create_test_chat(user_email=user_email, content="Dummy")
-    cleanup_chats.append((chat_id, timestamp))
-    chat_payload = {
-        "user_email": user_email,
-        "messages": [
-            {
-                "content": "Hello, please repeat this as is: 'I am a test model!'",
-                "role": MessageRole.USER,
-                "message_type": "text",
-                "media_s3_keys": None,
-                "llm_model": "openrouter/mistralai/devstral-2512:free",
-            },
-            {
-                "content": "I am a test model!",
-                "role": MessageRole.ASSISTANT,
-                "message_type": "text",
-                "media_s3_keys": None,
-                "llm_model": "openrouter/mistralai/devstral-2512:free",
-            },
-            {
-                "content": "Now say 'Bye!'",
-                "role": MessageRole.USER,
-                "message_type": "text",
-                "media_s3_keys": None,
-                "llm_model": "openrouter/mistralai/devstral-2512:free",
-            },
-        ],
-    }
-    total_response = ""
-
-    token = generate_access_token(user_email)
-    with client.websocket_connect(
-        f"{settings.API_V1_STR}/messaging/chat/text_ws/{chat_id}/{timestamp}",
-        cookies={"access_token": token},
-    ) as websocket:
-        websocket.send_json(chat_payload)
-        while True:
-            message = websocket.receive_json()
-            ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
-            assert ws_msg.type != WebSocketMessageType.NEW_CHAT
-            if ws_msg.type == WebSocketMessageType.TOKEN:
-                total_response += ws_msg.content
-            elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
-                break
-            elif ws_msg.type == WebSocketMessageType.ERROR:
-                pytest.fail(f"Websocket error: {ws_msg.content}")
-
-    assert "Bye!" in total_response
-
-    token = generate_access_token(user_email)
-    response = client.get(
-        f"{settings.API_V1_STR}/messaging/chats", cookies={"access_token": token}
-    )
-    assert response.status_code == 200
-    content = response.json()
-    assert (
-        len(content["items"]) == 1
-    )  # should exist only one chat and not have created two

@@ -6,7 +6,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from gptbundle.messaging.storage import upload_file
+from gptbundle.media_storage.storage import upload_file
 from gptbundle.security.service import get_current_user
 
 logger = logging.getLogger(__name__)

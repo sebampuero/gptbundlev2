@@ -183,12 +183,13 @@ async def websocket_text_generation_endpoint(
                 continue
 
             user_message = MessageCreate.model_validate(data["user_message"])
-            for s3_key in user_message.media_s3_keys:
-                move_file(s3_key, s3_key.replace("temp/", "permanent/"))
-            user_message.media_s3_keys = [
-                s3_key.replace("temp/", "permanent/")
-                for s3_key in user_message.media_s3_keys
-            ]
+            if user_message.media_s3_keys:
+                for s3_key in user_message.media_s3_keys:
+                    move_file(s3_key, s3_key.replace("temp/", "permanent/"))
+                user_message.media_s3_keys = [
+                    s3_key.replace("temp/", "permanent/")
+                    for s3_key in user_message.media_s3_keys
+                ]
 
             if active_chat_id is None and active_timestamp is None:
                 try:

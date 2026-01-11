@@ -11,7 +11,9 @@ from gptbundle.security.service import generate_access_token
 
 @pytest.fixture
 def s3_setup(monkeypatch):
-    monkeypatch.setattr("gptbundle.messaging.storage.settings.S3_ENDPOINT_URL", None)
+    monkeypatch.setattr(
+        "gptbundle.media_storage.storage.settings.S3_ENDPOINT_URL", None
+    )
     with mock_aws():
         s3 = boto3.client("s3", region_name=settings.S3_REGION)
         bucket_config = {}
