@@ -3,9 +3,14 @@ import { keyframes } from "@emotion/react";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
+import { Image } from "@chakra-ui/react";
 
 interface MessageBubbleProps {
-    message: { role: string; content: string };
+    message: {
+        role: string;
+        content: string;
+        presigned_urls?: string[];
+    };
 }
 
 const bounce = keyframes`
@@ -63,6 +68,21 @@ export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isL
                 paddingTop={0}
             >
                 <Markdown>{message.content}</Markdown>
+                {message.presigned_urls && message.presigned_urls.length > 0 && (
+                    <Box display="flex" alignItems="center" mt={2}>
+                        {message.presigned_urls.map((url, index) => (
+                            <Image
+                                key={index}
+                                src={url}
+                                alt={`Image ${index + 1}`}
+                                maxW="200px"
+                                maxH="200px"
+                                objectFit="contain"
+                                mr={2}
+                            />
+                        ))}
+                    </Box>
+                )}
                 {isLoading && (
                     <Box display="flex" alignItems="center" mt={2} height="10px">
                         <Box

@@ -22,6 +22,8 @@ class MessageCreate(BaseModel):
     role: MessageRole
     message_type: str = "text"
     media_s3_keys: list[str] | None = None
+    # this contains the presigned URLs returned using fetch chats
+    presigned_urls: list[str] | None = None
     llm_model: str
 
 

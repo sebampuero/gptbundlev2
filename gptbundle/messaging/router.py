@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from gptbundle.llm.service import generate_text_response
+from gptbundle.media_storage.storage import generate_presigned_url
 from gptbundle.security.service import get_current_user
 
 from .repository import ChatRepository
@@ -62,6 +63,11 @@ def retrieve_chat(
             status_code=404,
             detail="Chat not found",
         )
+    for message in chat.messages:
+        if message.media_s3_keys:
+            message.presigned_urls = [
+                generate_presigned_url(key) for key in message.media_s3_keys
+            ]
     return chat
 
 

@@ -10,6 +10,7 @@ export interface Message {
     message_type?: string;
     is_loading_message?: boolean;
     media_s3_keys?: string[];
+    presigned_urls?: string[];
 }
 
 export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
