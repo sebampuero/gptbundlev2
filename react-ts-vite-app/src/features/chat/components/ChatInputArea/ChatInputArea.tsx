@@ -8,10 +8,12 @@ import {
     Spinner,
     CloseButton,
 } from "@chakra-ui/react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { LuPlus, LuSend, LuPanelLeftOpen } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useNavigate } from "react-router-dom";
+import { useLLModels } from "../../hooks/useLLModels";
+import { useModel } from "../../../../context/ModelContext";
 
 interface ChatInputAreaProps {
     onShowSidebar: () => void;
@@ -41,8 +43,21 @@ export const ChatInputArea = ({
     const [inputValue, setInputValue] = useState("");
     const [pastedImages, setPastedImages] = useState<PastedImage[]>([]);
     const navigate = useNavigate();
+    const { models } = useLLModels();
+    const { selectedModel } = useModel();
+
+    const currentModel = useMemo(() => {
+        return models.find(m => m.model_name === selectedModel);
+    }, [models, selectedModel]);
+
+    const supportsVision = currentModel?.supports_input_vision ?? false;
 
     const handleSend = () => {
+        // Prevent sending if images are present but model doesn't support vision
+        if (pastedImages.length > 0 && !supportsVision) {
+            return;
+        }
+
         if (inputValue.trim() || pastedImages.length > 0) {
             // Wait for all uploads to finish before sending? 
             // The requirement says "loading icon will disappear as soon as the s3 keys of the image arrive".
@@ -79,6 +94,9 @@ export const ChatInputArea = ({
     };
 
     const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+        // If model doesn't support vision, do not process images
+        if (!supportsVision) return;
+
         const items = e.clipboardData.items;
         const files: File[] = [];
 
@@ -122,7 +140,7 @@ export const ChatInputArea = ({
                 setPastedImages(prev => prev.filter(img => !filesToUpload.includes(img.file)));
             }
         }
-    }, [pastedImages, uploadImages]);
+    }, [pastedImages, uploadImages, supportsVision]);
 
     const removeImage = (index: number) => {
         const image = pastedImages[index];
@@ -210,7 +228,7 @@ export const ChatInputArea = ({
                     size="sm"
                     _hover={{ bg: "green.600" }}
                     onClick={handleSend}
-                    disabled={pastedImages.some(img => img.isLoading)}
+                    disabled={pastedImages.some(img => img.isLoading) || (pastedImages.length > 0 && !supportsVision)}
                 >
                     <LuSend />
                 </IconButton>
