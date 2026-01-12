@@ -3,6 +3,10 @@ secrets:
     environment: OPENROUTER_API_KEY
   jwt_secret_key:
     environment: JWT_SECRET_KEY
+  s3_access_key_id:
+    environment: S3_ACCESS_KEY_ID
+  s3_secret_access_key:
+    environment: S3_SECRET_ACCESS_KEY
 
 services:
   web:
@@ -19,12 +23,16 @@ services:
       - AWS_ACCESS_KEY_ID=TEST
       - AWS_SECRET_ACCESS_KEY=TEST
       - DEVELOPMENT_MODE=false
+      - ALLOW_REGISTRATION=false
+      - S3_ENDPOINT_URL=https://s3.eu-central-1.amazonaws.com
     depends_on:
       - db
       - dynamodb-local
     secrets:
       - openrouter_api_key
       - jwt_secret_key
+      - s3_access_key_id
+      - s3_secret_access_key
 
   db:
     image: postgres:18-alpine
