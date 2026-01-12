@@ -9,11 +9,12 @@ import {
     CloseButton,
 } from "@chakra-ui/react";
 import { useState, useCallback, useMemo } from "react";
-import { LuPlus, LuSend, LuPanelLeftOpen } from "react-icons/lu";
+import { LuPlus, LuSend, LuPanelLeftOpen, LuImage } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useNavigate } from "react-router-dom";
 import { useLLModels } from "../../hooks/useLLModels";
 import { useModel } from "../../../../context/ModelContext";
+import { useRef } from "react";
 
 interface ChatInputAreaProps {
     onShowSidebar: () => void;
@@ -39,12 +40,14 @@ export const ChatInputArea = ({
     uploadImages,
     removeMediaKey
 }: ChatInputAreaProps) => {
+
     const { open, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState("");
     const [pastedImages, setPastedImages] = useState<PastedImage[]>([]);
     const navigate = useNavigate();
     const { models } = useLLModels();
     const { selectedModel } = useModel();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const currentModel = useMemo(() => {
         return models.find(m => m.model_name === selectedModel);
@@ -93,8 +96,40 @@ export const ChatInputArea = ({
         onStartNewChat();
     };
 
+    const handleFiles = useCallback(async (files: File[]) => {
+        if (!supportsVision) return;
+
+        const remainingSlots = 3 - pastedImages.length;
+        const filesToUpload = Array.from(files).slice(0, remainingSlots);
+
+        if (filesToUpload.length === 0) return;
+
+        const newImages: PastedImage[] = filesToUpload.map(file => ({
+            file,
+            url: URL.createObjectURL(file),
+            isLoading: true
+        }));
+
+        setPastedImages(prev => [...prev, ...newImages]);
+
+        try {
+            const keys = await uploadImages(filesToUpload);
+            setPastedImages(prev => {
+                let keyIndex = 0;
+                return prev.map(img => {
+                    if (filesToUpload.includes(img.file)) {
+                        return { ...img, isLoading: false, key: keys[keyIndex++] };
+                    }
+                    return img;
+                });
+            });
+        } catch (error) {
+            console.error("Failed to upload images", error);
+            setPastedImages(prev => prev.filter(img => !filesToUpload.includes(img.file)));
+        }
+    }, [pastedImages, uploadImages, supportsVision]);
+
     const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
-        // If model doesn't support vision, do not process images
         if (!supportsVision) return;
 
         const items = e.clipboardData.items;
@@ -109,38 +144,21 @@ export const ChatInputArea = ({
 
         if (files.length > 0) {
             e.preventDefault();
-
-            const remainingSlots = 3 - pastedImages.length;
-            const filesToUpload = files.slice(0, remainingSlots);
-
-            if (filesToUpload.length === 0) return;
-
-            const newImages: PastedImage[] = filesToUpload.map(file => ({
-                file,
-                url: URL.createObjectURL(file),
-                isLoading: true
-            }));
-
-            setPastedImages(prev => [...prev, ...newImages]);
-
-            try {
-                const keys = await uploadImages(filesToUpload);
-                setPastedImages(prev => {
-                    let keyIndex = 0;
-                    return prev.map(img => {
-                        if (filesToUpload.includes(img.file)) {
-                            return { ...img, isLoading: false, key: keys[keyIndex++] };
-                        }
-                        return img;
-                    });
-                });
-            } catch (error) {
-                console.error("Failed to upload images", error);
-                // Remove failed images
-                setPastedImages(prev => prev.filter(img => !filesToUpload.includes(img.file)));
-            }
+            handleFiles(files);
         }
-    }, [pastedImages, uploadImages, supportsVision]);
+    }, [handleFiles, supportsVision]);
+
+    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleFiles(Array.from(e.target.files));
+            // Reset input so the same file can be selected again if removed
+            e.target.value = "";
+        }
+    };
+
+    const triggerFileInput = () => {
+        fileInputRef.current?.click();
+    };
 
     const removeImage = (index: number) => {
         const image = pastedImages[index];
@@ -213,6 +231,23 @@ export const ChatInputArea = ({
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
                 />
+                <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    multiple
+                    style={{ display: "none" }}
+                    ref={fileInputRef}
+                    onChange={onFileChange}
+                />
+                <IconButton
+                    aria-label="Upload images"
+                    variant="ghost"
+                    size="sm"
+                    onClick={triggerFileInput}
+                    disabled={pastedImages.length >= 3 || !supportsVision}
+                >
+                    <LuImage />
+                </IconButton>
                 <IconButton
                     aria-label="Options"
                     variant="ghost"
