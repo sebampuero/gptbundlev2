@@ -69,6 +69,7 @@ Thumbs.db
 # Secrets / env
 .env
 .env.*        # ignore environment-specific env files (keep .env.example tracked instead)
+.env.local
 
 # Misc
 *~ 
