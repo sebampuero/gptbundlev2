@@ -197,6 +197,10 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     }, []);
 
     const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
+        if (!userEmail) {
+            console.error("No user email provided");
+            return;
+        }
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             setIsProcessingMessage(true);
             const userMessage: Message = {

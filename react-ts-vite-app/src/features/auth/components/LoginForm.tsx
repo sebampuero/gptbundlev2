@@ -12,12 +12,14 @@ import {
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { useAuth } from '../../../context/AuthContext';
 
 export const LoginForm: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { setUser } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +28,8 @@ export const LoginForm: React.FC = () => {
         setError(null);
 
         try {
-            await authService.login({ username, password });
+            const user = await authService.login({ username, password });
+            setUser({ email: user.email, username: user.username });
             navigate('/chat');
         } catch (err: any) {
             setError(err.message || 'Check your credentials and try again.');
