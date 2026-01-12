@@ -1,5 +1,7 @@
 from typing import Any
 
+from gptbundle.media_storage.storage import delete_objects
+
 from .repository import ChatRepository
 from .schemas import Chat, ChatCreate, MessageCreate
 
@@ -45,4 +47,17 @@ def append_messages(
 def delete_chat(
     chat_id: str, timestamp: float, chat_repo: ChatRepository, user_email: str
 ) -> bool:
-    return chat_repo.delete_chat(chat_id, timestamp, user_email)
+    chat = chat_repo.get_chat(chat_id, timestamp, user_email)
+    if not chat:
+        return False
+
+    s3_keys = []
+    for msg in chat.messages:
+        if msg.media_s3_keys:
+            s3_keys.extend(msg.media_s3_keys)
+
+    deleted = chat_repo.delete_chat(chat_id, timestamp, user_email)
+    if deleted and s3_keys:
+        delete_objects(s3_keys)
+
+    return deleted

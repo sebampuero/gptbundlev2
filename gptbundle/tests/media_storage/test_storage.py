@@ -5,6 +5,7 @@ from moto import mock_aws
 
 from gptbundle.common.config import settings
 from gptbundle.media_storage.storage import (
+    delete_objects,
     generate_presigned_url,
     move_file,
     upload_file,
@@ -75,3 +76,16 @@ def test_upload_file_error(s3_setup):
     ):
         with pytest.raises(ClientError):
             upload_file(b"data", "key")
+
+
+def test_delete_objects(s3_setup):
+    keys = ["file1.txt", "file2.txt", "file3.txt"]
+    for key in keys:
+        s3_setup.put_object(Bucket=settings.S3_BUCKET_NAME, Key=key, Body=b"test")
+
+    delete_objects(keys)
+
+    # Verify all are deleted
+    for key in keys:
+        with pytest.raises(ClientError):
+            s3_setup.get_object(Bucket=settings.S3_BUCKET_NAME, Key=key)

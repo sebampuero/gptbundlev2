@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import patch
 
 from gptbundle.messaging.repository import ChatRepository
 from gptbundle.messaging.schemas import ChatCreate, MessageCreate, MessageRole
@@ -310,3 +311,36 @@ def test_delete_chat(cleanup_chats: list):
     # Deleting with wrong chat_id should return False
     deleted_wrong_id = delete_chat("nonexistent_id", timestamp, chat_repo, user_email)
     assert deleted_wrong_id is False
+
+
+def test_delete_chat_with_s3_objects(cleanup_chats: list):
+    chat_repo = ChatRepository()
+    chat_id = "test_s3_delete_chat_id"
+    timestamp = datetime.now().timestamp()
+    user_email = "test_s3@example.com"
+    s3_keys = ["key1", "key2"]
+
+    messages = [
+        MessageCreate(
+            content="Hello with images",
+            role=MessageRole.USER,
+            message_type="image",
+            media_s3_keys=s3_keys,
+            llm_model="gpt4",
+        )
+    ]
+
+    chat_in = ChatCreate(
+        chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
+    )
+
+    create_chat(chat_in, chat_repo)
+
+    with patch("gptbundle.messaging.service.delete_objects") as mock_delete_objects:
+        deleted = delete_chat(chat_id, timestamp, chat_repo, user_email)
+        assert deleted is True
+        mock_delete_objects.assert_called_once_with(s3_keys)
+
+    # Verify the chat no longer exists
+    deleted_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    assert deleted_chat is None

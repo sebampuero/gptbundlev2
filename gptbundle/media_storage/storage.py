@@ -65,3 +65,21 @@ def move_file(source_key: str, target_key: str):
             f"Unknown error while moving file from {source_key} to {target_key}: {e}"
         )
         raise e
+
+
+def delete_objects(keys: list[str]):
+    if not keys:
+        return
+    client = get_s3_client()
+    try:
+        delete_list = [{"Key": key} for key in keys]
+        client.delete_objects(
+            Bucket=settings.S3_BUCKET_NAME, Delete={"Objects": delete_list}
+        )
+        logger.info(f"Successfully deleted {len(keys)} objects from S3")
+    except ClientError as e:
+        logger.error(f"Failed to delete objects from S3: {e}")
+        raise e
+    except Exception as e:
+        logger.error(f"Unknown error while deleting objects from S3: {e}")
+        raise e
