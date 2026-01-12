@@ -5,6 +5,8 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import { Image } from "@chakra-ui/react";
 
+import { useImagePreview } from "../../../../context/ImagePreviewContext";
+
 interface MessageBubbleProps {
     message: {
         role: string;
@@ -21,6 +23,7 @@ const bounce = keyframes`
 export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isLoading?: boolean }) => {
     const isUser = message.role === "user";
     const [isCopied, setIsCopied] = useState(false);
+    const { showImage } = useImagePreview();
 
     const handleCopy = async () => {
         try {
@@ -79,6 +82,10 @@ export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isL
                                 maxH="200px"
                                 objectFit="contain"
                                 mr={2}
+                                cursor="pointer"
+                                onClick={() => showImage(url)}
+                                transition="transform 0.2s"
+                                _hover={{ transform: "scale(1.02)" }}
                             />
                         ))}
                     </Box>

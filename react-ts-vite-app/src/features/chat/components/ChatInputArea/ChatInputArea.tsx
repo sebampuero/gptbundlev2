@@ -11,6 +11,7 @@ import {
 import { useState, useCallback, useMemo } from "react";
 import { LuPlus, LuSend, LuPanelLeftOpen, LuImage } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
+import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useNavigate } from "react-router-dom";
 import { useLLModels } from "../../hooks/useLLModels";
 import { useModel } from "../../../../context/ModelContext";
@@ -48,6 +49,7 @@ export const ChatInputArea = ({
     const { models } = useLLModels();
     const { selectedModel } = useModel();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { showImage } = useImagePreview();
 
     const currentModel = useMemo(() => {
         return models.find(m => m.model_name === selectedModel);
@@ -182,6 +184,8 @@ export const ChatInputArea = ({
                                 objectFit="cover"
                                 borderRadius="md"
                                 opacity={img.isLoading ? 0.5 : 1}
+                                cursor="pointer"
+                                onClick={() => !img.isLoading && showImage(img.url)}
                             />
                             {img.isLoading && (
                                 <Spinner
