@@ -15,6 +15,7 @@ setup_logging(
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    root_path=settings.SUBDIRECTORY,
 )
 
 if settings.BACKEND_CORS_ORIGINS:

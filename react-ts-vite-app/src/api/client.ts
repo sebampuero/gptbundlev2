@@ -1,6 +1,9 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-const BASE_URL = 'http://localhost:8000/api/v1';
+const SUBDIRECTORY = import.meta.env.VITE_SUBDIRECTORY || '';
+const BASE_URL = import.meta.env.DEV
+    ? 'http://localhost:8000/api/v1'
+    : `${SUBDIRECTORY}/api/v1`;
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,

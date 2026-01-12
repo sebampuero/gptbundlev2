@@ -48,7 +48,10 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         if (isManuallyClosed.current) return;
 
         // Construct URL based on current active chat or "new"
-        const url = `ws://localhost:8000/api/v1/messaging/chat/text_ws/${chatId}/${timestamp}`;
+        const SUBDIRECTORY = import.meta.env.VITE_SUBDIRECTORY || '';
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = import.meta.env.DEV ? 'localhost:8000' : window.location.host;
+        const url = `${wsProtocol}//${wsHost}${SUBDIRECTORY}/api/v1/messaging/chat/text_ws/${chatId}/${timestamp}`;
 
         const socket = new WebSocket(url);
         ws.current = socket;
