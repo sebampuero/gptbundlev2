@@ -227,7 +227,6 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         } else {
             console.error("WebSocket is not open");
         }
-        setIsProcessingMessage(false);
         currentMediaS3Keys.current = [];
     }, []);
 
