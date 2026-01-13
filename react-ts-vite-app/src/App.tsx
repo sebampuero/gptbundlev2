@@ -6,11 +6,13 @@ import { ChatPage } from './pages/ChatPage';
 
 import { ModelProvider } from './context/ModelContext';
 import { AuthProvider } from './context/AuthContext';
+import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
     <ModelProvider>
       <AuthProvider>
+        <Toaster />
         <Router>
           <Routes>
             <Route path="/login" element={

@@ -97,6 +97,7 @@ export const ChatPage = () => {
                         onStartNewChat={handleStartNewChat}
                         uploadImages={uploadImages}
                         removeMediaKey={removeMediaKey}
+                        isWebsocketConnected={isConnected}
                     />
                 </Box>
             </Flex>

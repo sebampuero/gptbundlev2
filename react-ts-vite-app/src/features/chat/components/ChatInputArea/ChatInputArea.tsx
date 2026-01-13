@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { useLLModels } from "../../hooks/useLLModels";
 import { useModel } from "../../../../context/ModelContext";
 import { useRef } from "react";
+import { toaster } from "../../../../components/ui/toaster";
 
 interface ChatInputAreaProps {
     onShowSidebar: () => void;
@@ -24,6 +25,7 @@ interface ChatInputAreaProps {
     onStartNewChat: () => void;
     uploadImages: (files: File[]) => Promise<string[]>;
     removeMediaKey: (key: string) => void;
+    isWebsocketConnected: boolean;
 }
 
 interface PastedImage {
@@ -39,7 +41,8 @@ export const ChatInputArea = ({
     onSendMessage,
     onStartNewChat,
     uploadImages,
-    removeMediaKey
+    removeMediaKey,
+    isWebsocketConnected
 }: ChatInputAreaProps) => {
 
     const { open, onOpen, onClose } = useDisclosure();
@@ -59,20 +62,19 @@ export const ChatInputArea = ({
 
     const handleSend = () => {
         // Prevent sending if images are present but model doesn't support vision
-        if (pastedImages.length > 0 && !supportsVision) {
+        if (!isWebsocketConnected) {
+            toaster.create({
+                title: "Not connected",
+                description: "Please wait for the websocket to connect before sending a message.",
+                type: "warning",
+            });
+            return;
+        }
+        if (pastedImages.length > 0 && !supportsVision && !isWebsocketConnected) {
             return;
         }
 
         if (inputValue.trim() || pastedImages.length > 0) {
-            // Wait for all uploads to finish before sending? 
-            // The requirement says "loading icon will disappear as soon as the s3 keys of the image arrive".
-            // And "When the user sends... uploaded images are shown".
-            // If the user sends while loading, we probably should wait or block, but let's assume they wait.
-            // Actually, if we use the ref in useChatMessages, we just need to make sure uploading started.
-            // But if it's still loading, the keys might not be ready.
-            // However, the user request says "loading icon will disappear as soon as the s3 keys... arrive".
-            // So if they are still loading, maybe disable send? Or just send what we have? 
-            // Better to block send if images are loading.
 
             if (pastedImages.some(img => img.isLoading)) {
                 return; // Prevent sending while uploading
