@@ -49,11 +49,16 @@ export const useChats = () => {
             return;
         }
         try {
-            const response = await apiClient.get(`/messaging/search_chats?query=${searchTerm}`);
+            const response = await apiClient.get(`/messaging/search_chats?search_term=${searchTerm}`);
             setChats(response.data);
             setNoMoreChatsToLoad(true);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred");
+            if (err instanceof AxiosError && err.response?.status !== 404) {
+                setError(err instanceof Error ? err.message : "An unknown error occurred");
+            } else {
+                setChats([]);
+                setNoMoreChatsToLoad(true);
+            }
         }
     }, [fetchChats]);
 
