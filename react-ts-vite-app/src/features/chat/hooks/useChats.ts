@@ -44,13 +44,18 @@ export const useChats = () => {
     }, []);
 
     const searchChats = useCallback(async (searchTerm: string) => {
+        if (!searchTerm.trim()) {
+            fetchChats(true);
+            return;
+        }
         try {
             const response = await apiClient.get(`/messaging/search_chats?query=${searchTerm}`);
             setChats(response.data);
+            setNoMoreChatsToLoad(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred");
         }
-    }, []);
+    }, [fetchChats]);
 
     useEffect(() => {
         fetchChats();

@@ -1,5 +1,5 @@
 import { Box, Input } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuSearch } from "react-icons/lu";
 import { useDebounce } from "../../hooks/useDebounce";
 
@@ -10,8 +10,13 @@ interface SearchFieldProps {
 export const SearchField = ({ onSearch }: SearchFieldProps) => {
     const [inputValue, setInputValue] = useState("");
     const debouncedSearchTerm = useDebounce(inputValue, 500);
+    const isInitialRender = useRef(true);
 
     useEffect(() => {
+        if (isInitialRender.current) {
+            isInitialRender.current = false;
+            return;
+        }
         onSearch(debouncedSearchTerm);
     }, [debouncedSearchTerm, onSearch]);
 
