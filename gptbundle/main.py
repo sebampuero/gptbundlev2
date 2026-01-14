@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +18,14 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     root_path=settings.SUBDIRECTORY,
+)
+
+logger = logging.getLogger(__name__)
+logger.info(
+    f"API path including\n"
+    f"root: {settings.SUBDIRECTORY}\n"
+    f"subdirectory: {settings.API_V1_STR}\n"
+    f"root and subdirectory: {settings.SUBDIRECTORY}{settings.API_V1_STR}"
 )
 
 if settings.BACKEND_CORS_ORIGINS:
