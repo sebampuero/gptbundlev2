@@ -26,6 +26,7 @@ services:
       - ALLOW_REGISTRATION=false
       - S3_ENDPOINT_URL=https://s3.eu-central-1.amazonaws.com
       - SUBDIRECTORY=/gptbundle
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
     depends_on:
       - db
       - dynamodb-local
