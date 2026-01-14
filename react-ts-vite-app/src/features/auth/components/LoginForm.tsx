@@ -6,11 +6,11 @@ import {
     VStack,
     Heading,
     Text,
-    Link,
+    Link as ChakraLink,
     Container,
 } from '@chakra-ui/react';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -98,9 +98,9 @@ export const LoginForm: React.FC = () => {
 
                     <Text textAlign="center" fontSize="sm" color="gray.500">
                         Don't have an account?{' '}
-                        <Link color="blue.500" fontWeight="semibold" href="/register">
-                            Register
-                        </Link>
+                        <ChakraLink color="blue.500" fontWeight="semibold">
+                            <RouterLink to="/register">Register</RouterLink>
+                        </ChakraLink>
                     </Text>
                 </VStack>
             </Box>

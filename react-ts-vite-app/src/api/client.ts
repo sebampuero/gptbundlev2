@@ -57,7 +57,7 @@ apiClient.interceptors.response.use(
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 processQueue(refreshError);
-                window.location.href = '/login';
+                window.location.href = `${SUBDIRECTORY}/login`;
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;

@@ -13,7 +13,7 @@ function App() {
     <ModelProvider>
       <AuthProvider>
         <Toaster />
-        <Router>
+        <Router basename={import.meta.env.VITE_SUBDIRECTORY || ''}>
           <Routes>
             <Route path="/login" element={
               <Flex minH="100vh" w="100%" align="center" justify="center" bg="gray.50">
