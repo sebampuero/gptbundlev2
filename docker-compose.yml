@@ -25,7 +25,7 @@ services:
       - DEVELOPMENT_MODE=false
       - ALLOW_REGISTRATION=false
       - S3_ENDPOINT_URL=https://s3.eu-central-1.amazonaws.com
-      - SUBDIRECTORY=gptbundle
+      - SUBDIRECTORY=/gptbundle
     depends_on:
       - db
       - dynamodb-local
