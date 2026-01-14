@@ -2,12 +2,19 @@ from typing import Any
 
 from gptbundle.media_storage.storage import delete_objects
 
+from .elasticsearch_repository import ElasticsearchRepository
 from .repository import ChatRepository
 from .schemas import Chat, ChatCreate, MessageCreate
 
 
-def create_chat(chat_in: ChatCreate, chat_repo: ChatRepository) -> Chat:
-    return chat_repo.create_chat(chat_in)
+def create_chat(
+    chat_in: ChatCreate,
+    chat_repo: ChatRepository,
+    es_repo: ElasticsearchRepository,
+) -> Chat:
+    chat = chat_repo.create_chat(chat_in)
+    es_repo.store_chat(chat)
+    return chat
 
 
 def get_chat(
@@ -40,12 +47,22 @@ def append_messages(
     messages: list[MessageCreate],
     chat_repo: ChatRepository,
     user_email: str,
+    es_repo: ElasticsearchRepository,
 ) -> bool:
-    return chat_repo.append_messages(chat_id, timestamp, messages, user_email)
+    success = chat_repo.append_messages(chat_id, timestamp, messages, user_email)
+    if success:
+        full_chat = chat_repo.get_chat(chat_id, timestamp, user_email)
+        if full_chat:
+            es_repo.store_chat(full_chat)
+    return success
 
 
 def delete_chat(
-    chat_id: str, timestamp: float, chat_repo: ChatRepository, user_email: str
+    chat_id: str,
+    timestamp: float,
+    chat_repo: ChatRepository,
+    user_email: str,
+    es_repo: ElasticsearchRepository,
 ) -> bool:
     chat = chat_repo.get_chat(chat_id, timestamp, user_email)
     if not chat:
@@ -57,7 +74,9 @@ def delete_chat(
             s3_keys.extend(msg.media_s3_keys)
 
     deleted = chat_repo.delete_chat(chat_id, timestamp, user_email)
-    if deleted and s3_keys:
-        delete_objects(s3_keys)
+    if deleted:
+        if s3_keys:
+            delete_objects(s3_keys)
+        es_repo.delete_chat(chat_id)
 
     return deleted

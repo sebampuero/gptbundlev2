@@ -29,6 +29,7 @@ services:
     depends_on:
       - db
       - dynamodb-local
+      - elasticsearch
     secrets:
       - openrouter_api_key
       - jwt_secret_key
@@ -56,8 +57,24 @@ services:
     ports:
       - "9000:8000"
     volumes:
-      - ./dynamodb-data:/home/dynamodblocal/data/
+      - ./dynamodb_data:/home/dynamodblocal/data/
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.1
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=changemepls
+      - "ELASTICSEARCH_USERNAME=elastic"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
 
 volumes:
   postgres_data:
-  dynamodb-data:
+  dynamodb_data:
+  esdata:

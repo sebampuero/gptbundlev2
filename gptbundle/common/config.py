@@ -20,13 +20,17 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
 
     AWS_REGION: str = "eu-central-1"
-    AWS_ENDPOINT_URL_DYNAMODB: str | None = None
+    AWS_ENDPOINT_URL_DYNAMODB: str
 
-    S3_ENDPOINT_URL: str | None = None
-    S3_ACCESS_KEY_ID: str | None = None
-    S3_SECRET_ACCESS_KEY: str | None = None
+    S3_ENDPOINT_URL: str
+    S3_ACCESS_KEY_ID: str
+    S3_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str = "gptbundle"
     S3_REGION: str = "eu-central-1"
+
+    ELASTICSEARCH_HOST: str = "http://localhost:9200"
+    ELASTICSEARCH_USER: str = "elastic"
+    ELASTICSEARCH_PASSWORD: str = "changemepls"
 
     OPENROUTER_API_KEY: str
     OPENROUTER_MODELS_URL: str = "https://openrouter.ai/api/v1/models"

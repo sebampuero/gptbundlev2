@@ -9,6 +9,7 @@ from gptbundle.llm.service import generate_text_response
 from gptbundle.media_storage.storage import generate_presigned_url, move_file
 from gptbundle.security.service import get_current_user
 
+from .elasticsearch_repository import ElasticsearchRepository
 from .repository import ChatRepository
 from .schemas import (
     Chat,
@@ -19,6 +20,7 @@ from .schemas import (
     WebSocketMessage,
     WebSocketMessageType,
 )
+from .search_service import search_chats_by_keyword
 from .service import (
     append_messages,
     create_chat,
@@ -32,6 +34,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 ChatRepositoryDep = Annotated[ChatRepository, Depends(ChatRepository)]
+ElasticsearchRepositoryDep = Annotated[
+    ElasticsearchRepository, Depends(ElasticsearchRepository)
+]
 UserEmailDep = Annotated[str, Depends(get_current_user)]
 
 
@@ -127,6 +132,7 @@ def retrieve_chats(
 )
 def remove_chat(
     chat_repo: ChatRepositoryDep,
+    es_repo: ElasticsearchRepositoryDep,
     chat_id: str,
     timestamp: float,
     user_email: UserEmailDep,
@@ -140,7 +146,11 @@ def remove_chat(
             detail="User not authenticated",
         )
     deleted = delete_chat(
-        chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp, user_email=user_email
+        chat_repo=chat_repo,
+        chat_id=chat_id,
+        timestamp=timestamp,
+        user_email=user_email,
+        es_repo=es_repo,
     )
     if not deleted:
         raise HTTPException(
@@ -149,10 +159,45 @@ def remove_chat(
         )
 
 
+@router.get(
+    "/search_chats",
+    response_model=list[Chat],
+    responses={
+        404: {"description": "Chats not found"},
+        401: {"description": "User not authenticated"},
+    },
+)
+def search_chats(
+    es_repo: ElasticsearchRepositoryDep,
+    user_email: UserEmailDep,
+    search_term: str,
+) -> Any:
+    logger.info(
+        f"Received GET Request for search_chats for user: {user_email} "
+        f"and search_term: {search_term}"
+    )
+    if not user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="User not authenticated",
+        )
+
+    chats = search_chats_by_keyword(
+        es_repo=es_repo, user_email=user_email, search_term=search_term
+    )
+    if not chats:
+        raise HTTPException(
+            status_code=404,
+            detail="Chats not found",
+        )
+    return chats
+
+
 @router.websocket("/chat/text_ws/{chat_id}/{timestamp}")
 async def websocket_text_generation_endpoint(
     websocket: WebSocket,
     chat_repo: ChatRepositoryDep,
+    es_repo: ElasticsearchRepositoryDep,
     chat_id: str,
     timestamp: float,
     user_email: UserEmailDep,
@@ -198,7 +243,9 @@ async def websocket_text_generation_endpoint(
                         user_email=user_email,
                         messages=[user_message],
                     )
-                    chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
+                    chat = create_chat(
+                        chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo
+                    )
                     active_chat_id = chat.chat_id
                     active_timestamp = chat.timestamp
                     logger.debug(
@@ -230,6 +277,7 @@ async def websocket_text_generation_endpoint(
                         timestamp=active_timestamp,
                         messages=new_messages,
                         user_email=user_email,
+                        es_repo=es_repo,
                     )
                     if not result_of_append:
                         await websocket.send_json(
@@ -274,6 +322,7 @@ async def websocket_text_generation_endpoint(
                     timestamp=active_timestamp,
                     messages=[ai_message],
                     user_email=user_email,
+                    es_repo=es_repo,
                 )
                 logger.debug(
                     f"Appended AI message to chat: {active_chat_id} "

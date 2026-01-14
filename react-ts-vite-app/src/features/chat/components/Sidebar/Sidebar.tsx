@@ -15,6 +15,7 @@ interface SidebarProps {
     onDeleteChat: (chatId: string, timestamp: number) => Promise<void>;
     onLoadMoreChats: (newChatRefresh: boolean) => void;
     noMoreChatsToLoad: boolean;
+    searchChats: (searchTerm: string) => void;
 }
 
 export const Sidebar = ({
@@ -27,7 +28,8 @@ export const Sidebar = ({
     error,
     onDeleteChat,
     onLoadMoreChats,
-    noMoreChatsToLoad
+    noMoreChatsToLoad,
+    searchChats
 }: SidebarProps) => {
 
     return (
@@ -52,7 +54,7 @@ export const Sidebar = ({
                     <LuPanelLeftClose />
                 </IconButton>
             </HStack>
-            <SearchField />
+            <SearchField onSearch={searchChats} />
             <VStack align="stretch" gap={0} flex={1} overflowY="auto" mt={4}>
                 {isLoading && (
                     <Box display="flex" justifyContent="center" py={4}>

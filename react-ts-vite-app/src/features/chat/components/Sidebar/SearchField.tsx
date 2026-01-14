@@ -1,7 +1,20 @@
 import { Box, Input } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 import { LuSearch } from "react-icons/lu";
+import { useDebounce } from "../../hooks/useDebounce";
 
-export const SearchField = () => {
+interface SearchFieldProps {
+    onSearch: (searchTerm: string) => void;
+}
+
+export const SearchField = ({ onSearch }: SearchFieldProps) => {
+    const [inputValue, setInputValue] = useState("");
+    const debouncedSearchTerm = useDebounce(inputValue, 500);
+
+    useEffect(() => {
+        onSearch(debouncedSearchTerm);
+    }, [debouncedSearchTerm, onSearch]);
+
     return (
         <Box position="relative" mb={4}>
             <Box
@@ -21,6 +34,8 @@ export const SearchField = () => {
                 borderRadius="md"
                 border="1px solid"
                 borderColor="gray.200"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
             />
         </Box>
     );

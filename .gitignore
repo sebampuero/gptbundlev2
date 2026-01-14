@@ -75,3 +75,6 @@ Thumbs.db
 *~ 
 *.swp
 *.swo
+
+dynamodb_data/
+dynamodb_data_dev/
