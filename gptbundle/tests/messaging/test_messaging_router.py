@@ -27,6 +27,7 @@ def is_valid_uuid4(uuid_string: str) -> bool:
 
 
 def create_test_chat(
+    es_repo,
     chat_id: str | None = None,
     timestamp: float | None = None,
     user_email: str = "test@example.com",
@@ -50,14 +51,19 @@ def create_test_chat(
         kwargs["timestamp"] = timestamp
 
     chat_in = ChatCreate(**kwargs)
-    chat = create_chat(chat_repo=chat_repo, chat_in=chat_in)
+    chat = create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
     return chat.chat_id, chat.timestamp
 
 
-def test_retrieve_chat_success(client: TestClient, cleanup_chats: list):
+def test_retrieve_chat_success(
+    client: TestClient, cleanup_chats: list, es_repo, cleanup_es: list
+):
     user_email = "test_get_api@example.com"
-    chat_id, timestamp = create_test_chat(user_email=user_email, content="Found me")
+    chat_id, timestamp = create_test_chat(
+        es_repo=es_repo, user_email=user_email, content="Found me"
+    )
     cleanup_chats.append((chat_id, timestamp))
+    cleanup_es.append(chat_id)
 
     # Retrieve it
     token = generate_access_token(user_email)
@@ -84,15 +90,23 @@ def test_retrieve_chat_not_found(client: TestClient):
     assert response.json()["detail"] == "Chat not found"
 
 
-def test_retrieve_chats_success(client: TestClient, cleanup_chats: list):
+def test_retrieve_chats_success(
+    client: TestClient, cleanup_chats: list, es_repo, cleanup_es: list
+):
     user_email = "multi_chat_user@example.com"
 
     # Create two chats
-    c1_id, c1_ts = create_test_chat(user_email=user_email, content="Msg 1")
+    c1_id, c1_ts = create_test_chat(
+        es_repo=es_repo, user_email=user_email, content="Msg 1"
+    )
     cleanup_chats.append((c1_id, c1_ts))
+    cleanup_es.append(c1_id)
 
-    c2_id, c2_ts = create_test_chat(user_email=user_email, content="Msg 2")
+    c2_id, c2_ts = create_test_chat(
+        es_repo=es_repo, user_email=user_email, content="Msg 2"
+    )
     cleanup_chats.append((c2_id, c2_ts))
+    cleanup_es.append(c2_id)
 
     # Retrieve all
     token = generate_access_token(user_email)
@@ -115,13 +129,18 @@ def test_retrieve_chats_not_found(client: TestClient):
     assert response.json()["detail"] == "Chats not found"
 
 
-def test_retrieve_chats_pagination(client: TestClient, cleanup_chats: list):
+def test_retrieve_chats_pagination(
+    client: TestClient, cleanup_chats: list, es_repo, cleanup_es: list
+):
     user_email = "paginated_user@example.com"
 
     # Create 3 chats
     for i in range(3):
-        c_id, c_ts = create_test_chat(user_email=user_email, content=f"Msg {i}")
+        c_id, c_ts = create_test_chat(
+            es_repo=es_repo, user_email=user_email, content=f"Msg {i}"
+        )
         cleanup_chats.append((c_id, c_ts))
+        cleanup_es.append(c_id)
 
     token = generate_access_token(user_email)
 
@@ -147,11 +166,14 @@ def test_retrieve_chats_pagination(client: TestClient, cleanup_chats: list):
     assert content["last_eval_key"] is None
 
 
-def test_delete_chat_success(client: TestClient, cleanup_chats: list):
+def test_delete_chat_success(
+    client: TestClient, cleanup_chats: list, es_repo, cleanup_es: list
+):
     user_email = "test_delete_api@example.com"
     chat_id, timestamp = create_test_chat(
-        user_email=user_email, content="To be deleted"
+        es_repo=es_repo, user_email=user_email, content="To be deleted"
     )
+    cleanup_es.append(chat_id)
     # No need to add to cleanup_chats since we're deleting it
 
     # Delete the chat
@@ -184,7 +206,7 @@ def test_delete_chat_not_found(client: TestClient):
 
 
 def test_websocket_chat_endpoint_first_connection(
-    client: TestClient, cleanup_chats: list
+    client: TestClient, cleanup_chats: list, es_repo, cleanup_es: list
 ):
     total_response = ""
 
@@ -213,6 +235,7 @@ def test_websocket_chat_endpoint_first_connection(
                 assert is_valid_uuid4(ws_msg.chat_id)
                 assert ws_msg.chat_timestamp > 0
                 cleanup_chats.append((ws_msg.chat_id, ws_msg.chat_timestamp))
+                cleanup_es.append(ws_msg.chat_id)
             elif ws_msg.type == WebSocketMessageType.TOKEN:
                 total_response += ws_msg.content
             elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:

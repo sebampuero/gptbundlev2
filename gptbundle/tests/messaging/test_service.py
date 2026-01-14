@@ -12,7 +12,7 @@ from gptbundle.messaging.service import (
 )
 
 
-def test_create_chat(cleanup_chats: list):
+def test_create_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_chat_id"
@@ -31,8 +31,9 @@ def test_create_chat(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo)
+    chat = create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
+    cleanup_es.append(chat.chat_id)
 
     assert chat.chat_id == chat_id
     assert chat.user_email == user_email
@@ -49,7 +50,7 @@ def test_create_chat(cleanup_chats: list):
     assert db_chat.messages[0].role == MessageRole.ASSISTANT
 
 
-def test_create_chat_with_no_messages(cleanup_chats: list):
+def test_create_chat_with_no_messages(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_chat_id"
@@ -61,8 +62,9 @@ def test_create_chat_with_no_messages(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo)
+    chat = create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
+    cleanup_es.append(chat.chat_id)
 
     assert chat.chat_id == chat_id
     assert chat.user_email == user_email
@@ -75,7 +77,7 @@ def test_create_chat_with_no_messages(cleanup_chats: list):
     assert len(db_chat.messages) == 0
 
 
-def test_get_chat(cleanup_chats: list):
+def test_get_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_get_chat_id"
@@ -94,8 +96,9 @@ def test_get_chat(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo)
+    chat = create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
+    cleanup_es.append(chat.chat_id)
 
     found_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
     assert found_chat is not None
@@ -105,7 +108,9 @@ def test_get_chat(cleanup_chats: list):
     assert not_found is None
 
 
-def test_get_chats_by_useremail_paginated(cleanup_chats: list):
+def test_get_chats_by_useremail_paginated(
+    cleanup_chats: list, es_repo, cleanup_es: list
+):
     chat_repo = ChatRepository()
 
     timestamp = datetime.now().timestamp()
@@ -125,8 +130,9 @@ def test_get_chats_by_useremail_paginated(cleanup_chats: list):
             )
         ],
     )
-    create_chat(chat_in_1, chat_repo)
+    create_chat(chat_in_1, chat_repo, es_repo)
     cleanup_chats.append(("chat1", timestamp))
+    cleanup_es.append("chat1")
 
     chat_in_2 = ChatCreate(
         chat_id="chat2",
@@ -141,8 +147,9 @@ def test_get_chats_by_useremail_paginated(cleanup_chats: list):
             )
         ],
     )
-    create_chat(chat_in_2, chat_repo)
+    create_chat(chat_in_2, chat_repo, es_repo)
     cleanup_chats.append(("chat2", timestamp + 1))
+    cleanup_es.append("chat2")
 
     chat_in_3 = ChatCreate(
         chat_id="chat3",
@@ -157,8 +164,9 @@ def test_get_chats_by_useremail_paginated(cleanup_chats: list):
             )
         ],
     )
-    create_chat(chat_in_3, chat_repo)
+    create_chat(chat_in_3, chat_repo, es_repo)
     cleanup_chats.append(("chat3", timestamp))
+    cleanup_es.append("chat3")
 
     user1_response = get_chats_by_user_email_paginated(user_email_1, chat_repo)
     user1_chats = user1_response["items"]
@@ -177,7 +185,7 @@ def test_get_chats_by_useremail_paginated(cleanup_chats: list):
     assert len(empty_response["items"]) == 0
 
 
-def test_get_chats_paginated_multi_page(cleanup_chats: list):
+def test_get_chats_paginated_multi_page(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     timestamp = datetime.now().timestamp()
@@ -199,8 +207,9 @@ def test_get_chats_paginated_multi_page(cleanup_chats: list):
                 )
             ],
         )
-        create_chat(chat_in, chat_repo)
+        create_chat(chat_in, chat_repo, es_repo)
         cleanup_chats.append((chat_id, timestamp + i))
+        cleanup_es.append(chat_id)
 
     # Test pagination with limit 2
     response1 = get_chats_by_user_email_paginated(user_email_1, chat_repo, limit=2)
@@ -227,7 +236,7 @@ def test_get_chats_paginated_multi_page(cleanup_chats: list):
     assert response3["last_eval_key"] is None
 
 
-def test_append_messages(cleanup_chats: list):
+def test_append_messages(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_append_messages_id"
@@ -246,8 +255,9 @@ def test_append_messages(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo)
+    chat = create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
+    cleanup_es.append(chat.chat_id)
 
     new_messages = [
         MessageCreate(
@@ -265,12 +275,12 @@ def test_append_messages(cleanup_chats: list):
     ]
 
     updated_chat = append_messages(
-        chat_id, timestamp, new_messages, chat_repo, user_email
+        chat_id, timestamp, new_messages, chat_repo, user_email, es_repo
     )
     assert updated_chat
 
 
-def test_delete_chat(cleanup_chats: list):
+def test_delete_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_delete_chat_id"
@@ -289,7 +299,8 @@ def test_delete_chat(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    create_chat(chat_in, chat_repo)
+    create_chat(chat_in, chat_repo, es_repo)
+    cleanup_es.append(chat_id)
     # No need to add to cleanup_chats since we're deleting it
 
     # Verify the chat exists
@@ -297,7 +308,7 @@ def test_delete_chat(cleanup_chats: list):
     assert found_chat is not None
 
     # Delete the chat
-    deleted = delete_chat(chat_id, timestamp, chat_repo, user_email)
+    deleted = delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
     assert deleted is True
 
     # Verify the chat no longer exists
@@ -305,15 +316,17 @@ def test_delete_chat(cleanup_chats: list):
     assert deleted_chat is None
 
     # Deleting a non-existent chat should return False
-    deleted_again = delete_chat(chat_id, timestamp, chat_repo, user_email)
+    deleted_again = delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
     assert deleted_again is False
 
     # Deleting with wrong chat_id should return False
-    deleted_wrong_id = delete_chat("nonexistent_id", timestamp, chat_repo, user_email)
+    deleted_wrong_id = delete_chat(
+        "nonexistent_id", timestamp, chat_repo, user_email, es_repo
+    )
     assert deleted_wrong_id is False
 
 
-def test_delete_chat_with_s3_objects(cleanup_chats: list):
+def test_delete_chat_with_s3_objects(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
     chat_id = "test_s3_delete_chat_id"
     timestamp = datetime.now().timestamp()
@@ -334,10 +347,11 @@ def test_delete_chat_with_s3_objects(cleanup_chats: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    create_chat(chat_in, chat_repo)
+    create_chat(chat_in, chat_repo, es_repo)
+    cleanup_es.append(chat_id)
 
     with patch("gptbundle.messaging.service.delete_objects") as mock_delete_objects:
-        deleted = delete_chat(chat_id, timestamp, chat_repo, user_email)
+        deleted = delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
         assert deleted is True
         mock_delete_objects.assert_called_once_with(s3_keys)
 

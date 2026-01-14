@@ -79,3 +79,34 @@ def cleanup_chats_fixture():
             Chat.get(chat_id, timestamp).delete()
         except Chat.DoesNotExist:
             pass
+
+
+@pytest.fixture(name="es_repo")
+def es_repo_fixture():
+    """
+    Fixture to provide an ElasticsearchRepository instance.
+    """
+    from gptbundle.messaging.elasticsearch_repository import ElasticsearchRepository
+
+    return ElasticsearchRepository()
+
+
+@pytest.fixture(name="cleanup_es")
+def cleanup_es_fixture(es_repo):
+    """
+    Fixture to track and delete Elasticsearch documents created during tests.
+    Usage:
+        def test_something(cleanup_es):
+            cleanup_es.append(chat_id)
+    """
+    chat_ids = []
+    yield chat_ids
+
+    if not chat_ids:
+        return
+
+    for chat_id in chat_ids:
+        try:
+            es_repo.delete_chat(chat_id)
+        except Exception:
+            pass
