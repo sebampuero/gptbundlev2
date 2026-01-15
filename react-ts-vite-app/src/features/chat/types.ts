@@ -22,6 +22,7 @@ export interface ChatPaginatedResponse {
 
 export interface LLMModel {
     model_name: string;
+    description: string;
     supports_input_vision: boolean;
     supports_output_vision: boolean;
 }

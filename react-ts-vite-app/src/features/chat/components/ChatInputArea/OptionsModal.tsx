@@ -126,6 +126,9 @@ export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalPr
                                             <Check size={18} color="var(--chakra-colors-blue-600)" />
                                         )}
                                     </HStack>
+                                    <Text fontSize="xs" color="gray.600" mt={1} mb={2}>
+                                        {model.description.length > 200 ? `${model.description.substring(0, 200)}...` : model.description}
+                                    </Text>
                                     <Text fontSize="xs" color="gray.500">
                                         <HStack>
                                             Input vision

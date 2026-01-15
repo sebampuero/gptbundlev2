@@ -21,6 +21,7 @@ def test_get_models(client):
         "data": [
             {
                 "id": "google/gemma-3-12b-it:free",
+                "description": "A very capable model.",
                 "architecture": {
                     "modality": "text+image->text",
                     "input_modalities": ["text", "image"],
@@ -29,6 +30,7 @@ def test_get_models(client):
             },
             {
                 "id": "openai/gpt-4o",
+                "description": "The best model.",
                 "architecture": {
                     "modality": "text->text",
                     "input_modalities": ["text"],
@@ -52,7 +54,9 @@ def test_get_models(client):
     )
     assert gemma["supports_input_vision"] is True
     assert gemma["supports_output_vision"] is False
+    assert gemma["description"] == "A very capable model."
 
     gpt4 = next(m for m in models if m["model_name"] == "openrouter/openai/gpt-4o")
     assert gpt4["supports_input_vision"] is False
     assert gpt4["supports_output_vision"] is False
+    assert gpt4["description"] == "The best model."
