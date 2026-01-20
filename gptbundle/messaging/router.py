@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
-from gptbundle.llm.service import generate_text_response
+from gptbundle.llm.service import generate_image_response, generate_text_response
 from gptbundle.media_storage.storage import generate_presigned_url, move_file
 from gptbundle.security.service import get_current_user
 
@@ -191,6 +191,60 @@ def search_chats(
             detail="Chats not found",
         )
     return chats
+
+
+@router.post(
+    "/image_generation",
+    response_model=MessageCreate,
+    responses={
+        401: {"description": "User not authenticated"},
+    },
+)
+async def generate_image(
+    chat_id: str,
+    chat_timestamp: float,
+    user_email: UserEmailDep,
+    user_message: MessageCreate,
+    chat_repo: ChatRepositoryDep,
+    es_repo: ElasticsearchRepositoryDep,
+) -> Any:
+    logger.info(
+        f"Received POST Request for image generation for "
+        f"chat id: {chat_id} and timestamp: {chat_timestamp}"
+    )
+    if not user_email:
+        raise HTTPException(
+            status_code=401,
+            detail="User not authenticated",
+        )
+    response_message = await generate_image_response(user_message)
+    if chat_id == "new" and chat_timestamp == 0:
+        chat = create_chat(
+            chat_in=ChatCreate(
+                user_email=user_email,
+                messages=[user_message],
+            ),
+            chat_repo=chat_repo,
+            es_repo=es_repo,
+        )
+        append_messages(
+            chat_id=chat.chat_id,
+            timestamp=chat.timestamp,
+            messages=[response_message],
+            chat_repo=chat_repo,
+            user_email=user_email,
+            es_repo=es_repo,
+        )
+    else:
+        append_messages(
+            chat_id=chat_id,
+            timestamp=chat_timestamp,
+            messages=[user_message, response_message],
+            chat_repo=chat_repo,
+            user_email=user_email,
+            es_repo=es_repo,
+        )
+    return response_message
 
 
 @router.websocket("/chat/text_ws/{chat_id}/{timestamp}")

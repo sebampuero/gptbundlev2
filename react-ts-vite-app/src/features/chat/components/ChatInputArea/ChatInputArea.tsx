@@ -9,7 +9,7 @@ import {
     CloseButton,
 } from "@chakra-ui/react";
 import { useState, useCallback, useMemo } from "react";
-import { LuPlus, LuSend, LuPanelLeftOpen, LuImage } from "react-icons/lu";
+import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,8 @@ interface ChatInputAreaProps {
     uploadImages: (files: File[]) => Promise<string[]>;
     removeMediaKey: (key: string) => void;
     isWebsocketConnected: boolean;
+    isOutputVisionSelected: boolean;
+    setIsOutputVisionSelected: (selected: boolean) => void;
 }
 
 interface PastedImage {
@@ -42,7 +44,9 @@ export const ChatInputArea = ({
     onStartNewChat,
     uploadImages,
     removeMediaKey,
-    isWebsocketConnected
+    isWebsocketConnected,
+    isOutputVisionSelected,
+    setIsOutputVisionSelected
 }: ChatInputAreaProps) => {
 
     const { open, onOpen, onClose } = useDisclosure();
@@ -58,7 +62,8 @@ export const ChatInputArea = ({
         return models.find(m => m.model_name === selectedModel);
     }, [models, selectedModel]);
 
-    const supportsVision = currentModel?.supports_input_vision ?? false;
+    const supportsInputVision = currentModel?.supports_input_vision ?? false;
+    const supportsOutputVision = currentModel?.supports_output_vision ?? false;
 
     const handleSend = () => {
         // Prevent sending if images are present but model doesn't support vision
@@ -70,7 +75,7 @@ export const ChatInputArea = ({
             });
             return;
         }
-        if (pastedImages.length > 0 && !supportsVision && !isWebsocketConnected) {
+        if (pastedImages.length > 0 && !supportsInputVision && !isWebsocketConnected) {
             return;
         }
 
@@ -101,7 +106,7 @@ export const ChatInputArea = ({
     };
 
     const handleFiles = useCallback(async (files: File[]) => {
-        if (!supportsVision) return;
+        if (!supportsInputVision) return;
 
         const remainingSlots = 3 - pastedImages.length;
         const filesToUpload = Array.from(files).slice(0, remainingSlots);
@@ -131,10 +136,10 @@ export const ChatInputArea = ({
             console.error("Failed to upload images", error);
             setPastedImages(prev => prev.filter(img => !filesToUpload.includes(img.file)));
         }
-    }, [pastedImages, uploadImages, supportsVision]);
+    }, [pastedImages, uploadImages, supportsInputVision]);
 
     const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
-        if (!supportsVision) return;
+        if (!supportsInputVision) return;
 
         const items = e.clipboardData.items;
         const files: File[] = [];
@@ -150,7 +155,7 @@ export const ChatInputArea = ({
             e.preventDefault();
             handleFiles(files);
         }
-    }, [handleFiles, supportsVision]);
+    }, [handleFiles, supportsInputVision]);
 
     const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -162,6 +167,10 @@ export const ChatInputArea = ({
 
     const triggerFileInput = () => {
         fileInputRef.current?.click();
+    };
+
+    const triggerOutputVision = () => {
+        setIsOutputVisionSelected(!isOutputVisionSelected);
     };
 
     const removeImage = (index: number) => {
@@ -246,11 +255,21 @@ export const ChatInputArea = ({
                     onChange={onFileChange}
                 />
                 <IconButton
+                    aria-label="Ask for image"
+                    variant={isOutputVisionSelected ? "solid" : "ghost"}
+                    colorPalette={isOutputVisionSelected ? "blue" : "gray"}
+                    size="sm"
+                    onClick={triggerOutputVision}
+                    disabled={!supportsOutputVision}
+                >
+                    <LuCamera />
+                </IconButton>
+                <IconButton
                     aria-label="Upload images"
                     variant="ghost"
                     size="sm"
                     onClick={triggerFileInput}
-                    disabled={pastedImages.length >= 3 || !supportsVision}
+                    disabled={pastedImages.length >= 3 || !supportsInputVision}
                 >
                     <LuImage />
                 </IconButton>
@@ -269,7 +288,7 @@ export const ChatInputArea = ({
                     size="sm"
                     _hover={{ bg: "green.600" }}
                     onClick={handleSend}
-                    disabled={pastedImages.some(img => img.isLoading) || (pastedImages.length > 0 && !supportsVision)}
+                    disabled={pastedImages.some(img => img.isLoading) || (pastedImages.length > 0 && !supportsInputVision)}
                 >
                     <LuSend />
                 </IconButton>

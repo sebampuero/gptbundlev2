@@ -63,10 +63,6 @@ export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalPr
                     borderColor="gray.100"
                 >
                     <Box p={6} borderBottom="1px solid" borderColor="gray.100">
-                        <DialogHeader fontWeight="bold" fontSize="xl" p={2}>
-                            Chat Settings
-                        </DialogHeader>
-
                         <Field.Root>
                             <Box position="relative">
                                 <Input
@@ -102,7 +98,7 @@ export const OptionsModal = ({ isOpen, onClose, onStartNewChat }: OptionsModalPr
                         </Field.Root>
                     </Box>
 
-                    <DialogBody p={2} maxH="400px" overflowY="auto">
+                    <DialogBody p={2} maxH="30vh" overflowY="auto">
                         <VStack gap={1} align="stretch">
                             {filteredModels.map((model) => (
                                 <Box

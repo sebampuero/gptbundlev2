@@ -36,6 +36,8 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     const [isConnected, setIsConnected] = useState(false);
     const [isProcessingMessage, setIsProcessingMessage] = useState(false);
     const reconnectTimeoutRef = useRef<number | null>(null);
+    const [isOutputVisionSelected, setIsOutputVisionSelectedState] = useState(false);
+    const isOutputVisionSelectedRef = useRef(false);
     const isManuallyClosed = useRef(false);
     const chatIdRef = useRef<string | undefined>(activeChatMetadata?.chatId);
     const timestampRef = useRef<string | undefined>(activeChatMetadata?.timestamp);
@@ -196,6 +198,47 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         currentMediaS3Keys.current = currentMediaS3Keys.current.filter(k => k !== key);
     }, []);
 
+    const setIsOutputVisionSelected = useCallback((selected: boolean) => {
+        setIsOutputVisionSelectedState(selected);
+        isOutputVisionSelectedRef.current = selected;
+    }, []);
+
+    const promptImageGeneration = useCallback(async (userMessage: Message) => {
+        try {
+            const response = await apiClient.post("/messaging/image_generation", userMessage, {
+                params: {
+                    chat_id: chatId,
+                    chat_timestamp: timestamp,
+                },
+            });
+            // delete last loading assisntant message
+            setMessages((prev) => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage && lastMessage.role === "assistant" && lastMessage.is_loading_message) {
+                    return prev.slice(0, -1);
+                }
+                return prev;
+            });
+            const message = response.data;
+            setMessages((prev) => [...prev, { ...message, is_loading_message: false }]);
+        } catch (error) {
+            console.error("Error generating image:", error);
+            setMessages((prev) => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage && lastMessage.role === "assistant" && lastMessage.is_loading_message) {
+                    return prev.slice(0, -1);
+                }
+                return prev;
+            });
+            setMessages((prev) => [...prev, {
+                role: "assistant",
+                content: "The model had an error generating a response, please try another model or try later.",
+                is_loading_message: false
+            }]);
+            throw error;
+        }
+    }, []);
+
     const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
         if (!userEmail) {
             console.error("No user email provided");
@@ -203,6 +246,22 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         }
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             setIsProcessingMessage(true);
+            if (isOutputVisionSelectedRef.current) {
+                const userMessage: Message = {
+                    role: "user",
+                    content,
+                    llm_model,
+                    message_type: "image"
+                };
+                setMessages((prev) => [...prev, userMessage]);
+                setMessages((prev) => [...prev, {
+                    role: "assistant",
+                    content: "",
+                    is_loading_message: true
+                }]);
+                promptImageGeneration(userMessage);
+                return;
+            }
             const userMessage: Message = {
                 role: "user",
                 content,
@@ -249,6 +308,8 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         startNewChat,
         isProcessingMessage,
         uploadImages,
-        removeMediaKey
+        removeMediaKey,
+        isOutputVisionSelected,
+        setIsOutputVisionSelected
     };
 }
