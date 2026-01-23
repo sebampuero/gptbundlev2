@@ -5,7 +5,6 @@ import { ChatInputArea } from "../features/chat/components/ChatInputArea/ChatInp
 import { MessageBubble } from "../features/chat/components/MessageBubble/MessageBubble";
 import { useChatMessages } from "../features/chat/hooks/useChatMessages";
 import { useChats } from "../features/chat/hooks/useChats";
-import { useParams } from "react-router-dom";
 import { useModel } from "../context/ModelContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -14,12 +13,11 @@ import { ImagePreviewProvider } from "../context/ImagePreviewContext";
 export const ChatPage = () => {
     const isMobile = useBreakpointValue({ base: true, md: false });
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const { chatId, timestamp } = useParams();
     const { selectedModel } = useModel();
     const { user } = useAuth();
 
-    // websocket connection with new chat. TODO: pass props chatid and timestamp when
-    // clicking on a sidebar item
+    const [currentChat, setCurrentChat] = useState<{ chatId?: string; timestamp?: string }>({});
+
     const {
         messages,
         sendMessage,
@@ -30,7 +28,7 @@ export const ChatPage = () => {
         removeMediaKey,
         isOutputVisionSelected,
         setIsOutputVisionSelected
-    } = useChatMessages({ chatId, timestamp });
+    } = useChatMessages(currentChat);
     const {
         chats,
         isLoading,
@@ -42,8 +40,13 @@ export const ChatPage = () => {
     } = useChats();
 
     const handleStartNewChat = () => {
+        setCurrentChat({});
         startNewChat();
         refreshChats(true);
+    };
+
+    const handleSelectChat = (chatId: string, timestamp: number) => {
+        setCurrentChat({ chatId, timestamp: timestamp.toString() });
     };
 
     useEffect(() => {
@@ -82,8 +85,6 @@ export const ChatPage = () => {
                     <Sidebar
                         onToggle={toggleSidebar}
                         startNewChat={handleStartNewChat}
-                        currentChatId={chatId}
-                        currentTimestamp={timestamp}
                         chats={chats}
                         isLoading={isLoading}
                         error={error}
@@ -91,6 +92,7 @@ export const ChatPage = () => {
                         onLoadMoreChats={refreshChats}
                         noMoreChatsToLoad={noMoreChatsToLoad}
                         searchChats={searchChats}
+                        onSelectChat={handleSelectChat}
                     />
                 </Box>
 

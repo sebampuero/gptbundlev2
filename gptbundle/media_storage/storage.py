@@ -39,6 +39,7 @@ def generate_presigned_url(key: str, expiration=3600):
             Params={"Bucket": settings.S3_BUCKET_NAME, "Key": key},
             ExpiresIn=expiration,
         )
+        logger.info(f"Successfully generated presigned URL for {key}")
         return url
     except ClientError as e:
         logger.error(f"Failed to generate presigned URL for {key}: {e}")

@@ -1,6 +1,5 @@
 import { Box, Text, VStack, IconButton, HStack } from "@chakra-ui/react";
 import { LuTrash2 } from "react-icons/lu";
-import { useNavigate } from "react-router-dom";
 
 interface ChatListItemProps {
     id: string;
@@ -8,13 +7,10 @@ interface ChatListItemProps {
     timestamp: string;
     rawTimestamp: number;
     onDelete: (id: string, timestamp: number) => void;
-    startNewChat: () => void;
-    currentChatId?: string;
-    currentTimestamp?: string;
+    onSelectChat: (id: string, timestamp: number) => void;
 }
 
-export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, startNewChat, currentChatId, currentTimestamp }: ChatListItemProps) => {
-    let navigate = useNavigate();
+export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, onSelectChat }: ChatListItemProps) => {
     return (
         <Box
             p={3}
@@ -25,7 +21,7 @@ export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, sta
             position="relative"
             role="group"
         >
-            <VStack align="start" onClick={() => navigate(`/chat/${id}/${rawTimestamp}`, { replace: true })}>
+            <VStack align="start" onClick={() => onSelectChat(id, rawTimestamp)}>
                 <Text fontSize="xs" color="gray.500">
                     {timestamp}
                 </Text>
@@ -43,11 +39,6 @@ export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, sta
                         onClick={(e) => {
                             e.stopPropagation();
                             onDelete(id, rawTimestamp);
-                            // Only start a new chat if the chat being deleted is the current one
-                            if (id === currentChatId && rawTimestamp.toString() === currentTimestamp) {
-                                startNewChat();
-                                navigate("/chat", { replace: true });
-                            }
                         }}
                     />
                 </HStack>

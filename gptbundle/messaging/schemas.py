@@ -1,5 +1,3 @@
-import time
-import uuid
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -33,8 +31,8 @@ class ChatBase(BaseModel):
 
 
 class ChatCreate(ChatBase):
-    chat_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: float = Field(default_factory=lambda: time.time())
+    chat_id: str = Field()
+    timestamp: float = Field()
 
 
 class Chat(ChatCreate):

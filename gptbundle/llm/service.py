@@ -33,8 +33,8 @@ async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
     s3_keys = []
     presigned_urls = []
     for image in images:
-        if image.type == "image_url":
-            _, encoded = image.image_url.url.split(",", 1)
+        if image.get("type") == "image_url":
+            _, encoded = image.get("image_url").get("url").split(",", 1)
             image_bytes = base64.b64decode(encoded)
             s3_key = f"permanent/{str(uuid.uuid4())}.png"
             await asyncio.to_thread(upload_file, image_bytes, s3_key)

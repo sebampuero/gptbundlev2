@@ -26,10 +26,11 @@ def test_generate_image_response_success():
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Here is your image"
-        mock_image_obj = Mock()
-        mock_image_obj.type = "image_url"
-        mock_image_obj.image_url.url = mock_image_url
-        mock_response.choices[0].message.images = [mock_image_obj]
+        mock_image_dict = {
+            "type": "image_url",
+            "image_url": {"url": mock_image_url},
+        }
+        mock_response.choices[0].message.images = [mock_image_dict]
 
         # Mock dependencies
         with (

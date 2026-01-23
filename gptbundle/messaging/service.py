@@ -1,6 +1,6 @@
 from typing import Any
 
-from gptbundle.media_storage.storage import delete_objects
+from gptbundle.media_storage.storage import delete_objects, generate_presigned_url
 
 from .elasticsearch_repository import ElasticsearchRepository
 from .repository import ChatRepository
@@ -20,7 +20,14 @@ def create_chat(
 def get_chat(
     chat_id: str, timestamp: float, chat_repo: ChatRepository, user_email: str
 ) -> Chat | None:
-    return chat_repo.get_chat(chat_id, timestamp, user_email)
+    chat = chat_repo.get_chat(chat_id, timestamp, user_email)
+    if chat:
+        for message in chat.messages:
+            if message.media_s3_keys:
+                message.presigned_urls = [
+                    generate_presigned_url(key) for key in message.media_s3_keys
+                ]
+    return chat
 
 
 def get_chats_by_user_email_paginated(

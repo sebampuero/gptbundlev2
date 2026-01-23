@@ -7,8 +7,6 @@ import type { Chat } from "../../types";
 interface SidebarProps {
     onToggle: () => void;
     startNewChat: () => void;
-    currentChatId?: string;
-    currentTimestamp?: string;
     chats: Chat[];
     isLoading: boolean;
     error: string | null;
@@ -16,20 +14,20 @@ interface SidebarProps {
     onLoadMoreChats: (newChatRefresh: boolean) => void;
     noMoreChatsToLoad: boolean;
     searchChats: (searchTerm: string) => void;
+    onSelectChat: (chatId: string, timestamp: number) => void;
 }
 
 export const Sidebar = ({
     onToggle,
     startNewChat,
-    currentChatId,
-    currentTimestamp,
     chats,
     isLoading,
     error,
     onDeleteChat,
     onLoadMoreChats,
     noMoreChatsToLoad,
-    searchChats
+    searchChats,
+    onSelectChat
 }: SidebarProps) => {
 
     return (
@@ -80,9 +78,7 @@ export const Sidebar = ({
                             timestamp={date}
                             rawTimestamp={chat.timestamp}
                             onDelete={onDeleteChat}
-                            startNewChat={startNewChat}
-                            currentChatId={currentChatId}
-                            currentTimestamp={currentTimestamp}
+                            onSelectChat={onSelectChat}
                         />
                     );
                 })}

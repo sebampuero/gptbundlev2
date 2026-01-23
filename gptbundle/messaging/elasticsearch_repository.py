@@ -1,6 +1,7 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import ConflictError, Elasticsearch
 
 from gptbundle.common.config import settings
+from gptbundle.messaging.exceptions import ChatAlreadyExistsError
 from gptbundle.messaging.schemas import Chat
 
 
@@ -28,7 +29,14 @@ class ElasticsearchRepository:
             self.client.indices.create(index="chats", body=body)
 
     def store_chat(self, chat: Chat) -> None:
-        self.client.index(index="chats", document=chat.dict(), id=chat.chat_id)
+        try:
+            self.client.index(
+                index="chats", document=chat.dict(), id=chat.chat_id, op_type="create"
+            )
+        except ConflictError as e:
+            raise ChatAlreadyExistsError(
+                f"Chat with id {chat.chat_id} already exists"
+            ) from e
 
     def delete_chat(self, chat_id: str) -> None:
         self.client.delete(index="chats", id=chat_id)

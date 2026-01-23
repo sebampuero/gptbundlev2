@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from gptbundle.llm.service import generate_image_response, generate_text_response
-from gptbundle.media_storage.storage import generate_presigned_url, move_file
+from gptbundle.media_storage.storage import move_file
 from gptbundle.security.service import get_current_user
 
 from .elasticsearch_repository import ElasticsearchRepository
+from .exceptions import ChatAlreadyExistsError
 from .repository import ChatRepository
 from .schemas import (
     Chat,
@@ -68,11 +69,6 @@ def retrieve_chat(
             status_code=404,
             detail="Chat not found",
         )
-    for message in chat.messages:
-        if message.media_s3_keys:
-            message.presigned_urls = [
-                generate_presigned_url(key) for key in message.media_s3_keys
-            ]
     return chat
 
 
@@ -195,7 +191,7 @@ def search_chats(
 
 @router.post(
     "/image_generation",
-    response_model=MessageCreate,
+    response_model=Chat,
     responses={
         401: {"description": "User not authenticated"},
     },
@@ -218,11 +214,13 @@ async def generate_image(
             detail="User not authenticated",
         )
     response_message = await generate_image_response(user_message)
-    if chat_id == "new" and chat_timestamp == 0:
+    try:
         chat = create_chat(
             chat_in=ChatCreate(
                 user_email=user_email,
                 messages=[user_message],
+                chat_id=chat_id,
+                timestamp=chat_timestamp,
             ),
             chat_repo=chat_repo,
             es_repo=es_repo,
@@ -235,7 +233,8 @@ async def generate_image(
             user_email=user_email,
             es_repo=es_repo,
         )
-    else:
+    except ChatAlreadyExistsError as e:
+        logger.debug(f"Chat existed already: {e}")
         append_messages(
             chat_id=chat_id,
             timestamp=chat_timestamp,
@@ -244,23 +243,29 @@ async def generate_image(
             user_email=user_email,
             es_repo=es_repo,
         )
-    return response_message
+    except Exception as e:
+        logger.error(f"Error creating chat: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error creating chat",
+        ) from e
+    return get_chat(
+        chat_id=chat_id,
+        timestamp=chat_timestamp,
+        chat_repo=chat_repo,
+        user_email=user_email,
+    )
 
 
-@router.websocket("/chat/text_ws/{chat_id}/{timestamp}")
+@router.websocket("/chat/text_ws")
 async def websocket_text_generation_endpoint(
     websocket: WebSocket,
     chat_repo: ChatRepositoryDep,
     es_repo: ElasticsearchRepositoryDep,
-    chat_id: str,
-    timestamp: float,
     user_email: UserEmailDep,
 ):
     """This websocket endpoint handles the text generation for a chat."""
     await websocket.accept()
-
-    active_chat_id = None if chat_id == "new" else chat_id
-    active_timestamp = None if timestamp == 0 else timestamp
 
     if not user_email:
         raise HTTPException(
@@ -282,6 +287,16 @@ async def websocket_text_generation_endpoint(
                 continue
 
             user_message = MessageCreate.model_validate(data["user_message"])
+            active_chat_id = data.get("chat_id")
+            active_timestamp = data.get("timestamp")
+            if active_chat_id is None and active_timestamp is None:
+                await websocket.send_json(
+                    WebSocketMessage(
+                        type=WebSocketMessageType.ERROR,
+                        content="Something went wrong, please try again later",
+                    ).model_dump()
+                )
+                continue
             if user_message.media_s3_keys:
                 for s3_key in user_message.media_s3_keys:
                     move_file(s3_key, s3_key.replace("temp/", "permanent/"))
@@ -290,65 +305,47 @@ async def websocket_text_generation_endpoint(
                     for s3_key in user_message.media_s3_keys
                 ]
 
-            if active_chat_id is None and active_timestamp is None:
-                try:
-                    logger.debug(f"Creating new chat for user: {user_email}")
-                    chat_in = ChatCreate(
-                        user_email=user_email,
-                        messages=[user_message],
-                    )
-                    chat = create_chat(
-                        chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo
-                    )
-                    active_chat_id = chat.chat_id
-                    active_timestamp = chat.timestamp
-                    logger.debug(
-                        f"Created new chat for user: {user_email} "
-                        f"with chat_id: {active_chat_id} and "
-                        f"timestamp: {active_timestamp}"
-                    )
-                    await websocket.send_json(
-                        WebSocketMessage(
-                            type=WebSocketMessageType.NEW_CHAT,
-                            chat_id=active_chat_id,
-                            chat_timestamp=active_timestamp,
-                        ).model_dump()
-                    )
-                except Exception as e:
-                    await websocket.send_json(
-                        WebSocketMessage(
-                            type=WebSocketMessageType.ERROR,
-                            content=f"Failed to create chat: {str(e)}",
-                        ).model_dump()
-                    )
-                    continue
-            else:
-                try:
-                    new_messages = [user_message]
-                    result_of_append = append_messages(
-                        chat_repo=chat_repo,
-                        chat_id=active_chat_id,
-                        timestamp=active_timestamp,
-                        messages=new_messages,
-                        user_email=user_email,
-                        es_repo=es_repo,
-                    )
-                    if not result_of_append:
-                        await websocket.send_json(
-                            WebSocketMessage(
-                                type=WebSocketMessageType.ERROR,
-                                content="Failed to append messages",
-                            ).model_dump()
-                        )
-                        continue
-                except Exception as e:
+            try:
+                logger.debug(f"Creating new chat for user: {user_email}")
+                chat_in = ChatCreate(
+                    user_email=user_email,
+                    messages=[user_message],
+                    chat_id=active_chat_id,
+                    timestamp=active_timestamp,
+                )
+                create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
+                logger.debug(
+                    f"Created new chat for user: {user_email} "
+                    f"with chat_id: {active_chat_id} and "
+                    f"timestamp: {active_timestamp}"
+                )
+            except ChatAlreadyExistsError as e:
+                logger.debug(f"Chat existed already: {e}")
+                new_messages = [user_message]
+                result_of_append = append_messages(
+                    chat_repo=chat_repo,
+                    chat_id=active_chat_id,
+                    timestamp=active_timestamp,
+                    messages=new_messages,
+                    user_email=user_email,
+                    es_repo=es_repo,
+                )
+                if not result_of_append:
                     await websocket.send_json(
                         WebSocketMessage(
                             type=WebSocketMessageType.ERROR,
-                            content=f"Failed to append messages: {str(e)}",
+                            content="Something went wrong, please try again later",
                         ).model_dump()
                     )
                     continue
+            except Exception:
+                await websocket.send_json(
+                    WebSocketMessage(
+                        type=WebSocketMessageType.ERROR,
+                        content="Something went wrong, please try again later",
+                    ).model_dump()
+                )
+                continue
 
             llm_model = user_message.llm_model
 

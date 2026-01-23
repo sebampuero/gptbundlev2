@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { apiClient } from "../../../api/client";
+import { useModel } from "../../../context/ModelContext";
+import { useLLModels } from "../hooks/useLLModels";
 
 export type MessageRole = "user" | "assistant";
 
@@ -27,10 +29,8 @@ export interface ChatMetadata {
     timestamp?: string;
 }
 
-import { useNavigate } from "react-router-dom";
 
-export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
-    const navigate = useNavigate();
+export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const ws = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
@@ -39,12 +39,23 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
     const [isOutputVisionSelected, setIsOutputVisionSelectedState] = useState(false);
     const isOutputVisionSelectedRef = useRef(false);
     const isManuallyClosed = useRef(false);
-    const chatIdRef = useRef<string | undefined>(activeChatMetadata?.chatId);
-    const timestampRef = useRef<string | undefined>(activeChatMetadata?.timestamp);
+    const chatIdRef = useRef<string | undefined>(undefined);
+    const timestampRef = useRef<string | undefined>(undefined);
     const currentMediaS3Keys = useRef<string[]>([]);
 
-    const chatId = activeChatMetadata?.chatId || "new";
-    const timestamp = activeChatMetadata?.timestamp || "0";
+    // Model context to handle capabilities changes
+    const { selectedModel } = useModel();
+    const { models } = useLLModels();
+
+
+    // Reset output vision if the selected model doesn't support it
+    useEffect(() => {
+        const currentModel = models.find(m => m.model_name === selectedModel);
+        if (currentModel && !currentModel.supports_output_vision && isOutputVisionSelected) {
+            setIsOutputVisionSelectedState(false);
+            isOutputVisionSelectedRef.current = false;
+        }
+    }, [selectedModel, models, isOutputVisionSelected]);
 
     const connect = useCallback(() => {
         if (isManuallyClosed.current) return;
@@ -53,13 +64,12 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         const SUBDIRECTORY = import.meta.env.VITE_SUBDIRECTORY || '';
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = import.meta.env.DEV ? 'localhost:8000' : window.location.host;
-        const url = `${wsProtocol}//${wsHost}${SUBDIRECTORY}/api/v1/messaging/chat/text_ws/${chatId}/${timestamp}`;
+        const url = `${wsProtocol}//${wsHost}${SUBDIRECTORY}/api/v1/messaging/chat/text_ws`;
 
         const socket = new WebSocket(url);
         ws.current = socket;
 
         socket.onopen = () => {
-            console.log("ws opened with chatId: " + chatId + " and timestamp: " + timestamp);
             setIsConnected(true);
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
@@ -112,11 +122,6 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                     setIsProcessingMessage(false);
                     break;
 
-                case "chat_created":
-                    chatIdRef.current = data.chat_id;
-                    timestampRef.current = data.chat_timestamp;
-                    break;
-
                 case "error":
                     setMessages((prev) => {
                         const lastMessage = prev[prev.length - 1];
@@ -132,31 +137,43 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                     break;
             }
         };
-    }, [chatId, timestamp]);
+    }, []);
 
+    const fetchHistory = useCallback(async (id: string, timestamp: string) => {
+        // If we already have this chat loaded, maybe we don't need to refetch?
+        // But for now, let's always fetch to be safe/simple
+        setIsProcessingMessage(true); // Optional: show loading state
+        try {
+            const response = await apiClient.get(`/messaging/chat/${id}/${timestamp}`);
+            const data = response.data;
+            if (data && data.messages) {
+                setMessages(data.messages);
+            }
+        } catch (error) {
+            console.error("Error fetching chat history:", error);
+            setMessages([]);
+        } finally {
+            setIsProcessingMessage(false);
+        }
+    }, []);
+
+    // Effect to handle chat switching via props
     useEffect(() => {
-        // ... inside component
-        const fetchHistory = async () => {
-            if (chatId === "new") {
-                setMessages([]);
-                return;
-            }
+        if (chatMetadata.chatId && chatMetadata.timestamp) {
+            // Switch to existing chat
+            chatIdRef.current = chatMetadata.chatId;
+            timestampRef.current = chatMetadata.timestamp;
+            fetchHistory(chatMetadata.chatId, chatMetadata.timestamp);
+        } else {
+            // New chat mode
+            chatIdRef.current = undefined;
+            timestampRef.current = undefined;
+            setMessages([]);
+        }
+    }, [chatMetadata, fetchHistory]);
 
-            try {
-                const response = await apiClient.get(`/messaging/chat/${chatId}/${timestamp}`);
-                const data = response.data;
-                if (data && data.messages) {
-                    setMessages(data.messages);
-                }
-            } catch (error) {
-                console.error("Error fetching chat history:", error);
-                setMessages([]);
-                window.location.href = '/chat';
-            }
-        };
-
-        fetchHistory();
-
+    // Initial connection effect
+    useEffect(() => {
         isManuallyClosed.current = false;
         connect();
 
@@ -166,12 +183,10 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                 clearTimeout(reconnectTimeoutRef.current);
             }
             if (ws.current) {
-                console.log("closing ws for chatId: " + chatId);
                 ws.current.close();
             }
         };
-
-    }, [chatId, timestamp, connect]);
+    }, [connect]);
 
     const uploadImages = useCallback(async (files: File[]) => {
         const formData = new FormData();
@@ -203,12 +218,20 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         isOutputVisionSelectedRef.current = selected;
     }, []);
 
+    const initializeChatMetadata = () => {
+        if (!chatIdRef.current || !timestampRef.current) {
+            chatIdRef.current = crypto.randomUUID();
+            timestampRef.current = (Date.now() / 1000).toString();
+        }
+    };
+
     const promptImageGeneration = useCallback(async (userMessage: Message) => {
         try {
+            initializeChatMetadata();
             const response = await apiClient.post("/messaging/image_generation", userMessage, {
                 params: {
-                    chat_id: chatId,
-                    chat_timestamp: timestamp,
+                    chat_id: chatIdRef.current,
+                    chat_timestamp: timestampRef.current,
                 },
             });
             // delete last loading assisntant message
@@ -246,6 +269,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
         }
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             setIsProcessingMessage(true);
+            initializeChatMetadata();
             if (isOutputVisionSelectedRef.current) {
                 const userMessage: Message = {
                     role: "user",
@@ -286,7 +310,8 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
                     ...userMessage,
                     presigned_urls: undefined, // Don't send local blob URLs to backend
                 },
-                user_email: userEmail,
+                chat_id: chatIdRef.current,
+                timestamp: timestampRef.current,
             };
 
             ws.current.send(JSON.stringify(payload));
@@ -298,8 +323,7 @@ export const useChatMessages = (activeChatMetadata?: ChatMetadata) => {
 
     const startNewChat = useCallback(() => {
         setMessages([]);
-        navigate("/chat");
-    }, [navigate]);
+    }, []);
 
     return {
         messages,

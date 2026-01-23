@@ -1,8 +1,9 @@
 import logging
 from typing import Any
 
-from pynamodb.exceptions import DeleteError
+from pynamodb.exceptions import DeleteError, PutError
 
+from .exceptions import ChatAlreadyExistsError
 from .models import Chat as ChatModel
 from .schemas import Chat, ChatCreate, MessageCreate
 
@@ -18,7 +19,13 @@ class ChatRepository:
             user_email=chat_in.user_email,
             messages=messages_data,
         )
-        created_chat.save()
+        try:
+            created_chat.save(condition=ChatModel.chat_id.does_not_exist())
+        except PutError as e:
+            raise ChatAlreadyExistsError(
+                f"Chat with id {chat_in.chat_id} already exists"
+            ) from e
+
         logger.debug(
             f"Created chat for user: {chat_in.user_email} "
             f"with chat_id: {chat_in.chat_id} and "
