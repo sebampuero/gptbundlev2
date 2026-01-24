@@ -60,7 +60,7 @@ def append_messages(
     if success:
         full_chat = chat_repo.get_chat(chat_id, timestamp, user_email)
         if full_chat:
-            es_repo.store_chat(full_chat)
+            es_repo.update_chat(full_chat)
     return success
 
 

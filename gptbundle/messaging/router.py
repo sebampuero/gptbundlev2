@@ -288,15 +288,27 @@ async def websocket_text_generation_endpoint(
 
             user_message = MessageCreate.model_validate(data["user_message"])
             active_chat_id = data.get("chat_id")
-            active_timestamp = data.get("timestamp")
-            if active_chat_id is None and active_timestamp is None:
+            active_timestamp_raw = data.get("timestamp")
+
+            try:
+                active_timestamp = (
+                    float(active_timestamp_raw)
+                    if active_timestamp_raw is not None
+                    else None
+                )
+            except (ValueError, TypeError):
+                active_timestamp = None
+
+            if active_chat_id is None or active_timestamp is None:
+                logger.error(f"Invalid chat_id or timestamp provided: {data}")
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.ERROR,
-                        content="Something went wrong, please try again later",
+                        content="There was an error, please try again later.",
                     ).model_dump()
                 )
                 continue
+
             if user_message.media_s3_keys:
                 for s3_key in user_message.media_s3_keys:
                     move_file(s3_key, s3_key.replace("temp/", "permanent/"))
@@ -319,14 +331,13 @@ async def websocket_text_generation_endpoint(
                     f"with chat_id: {active_chat_id} and "
                     f"timestamp: {active_timestamp}"
                 )
-            except ChatAlreadyExistsError as e:
-                logger.debug(f"Chat existed already: {e}")
-                new_messages = [user_message]
+            except ChatAlreadyExistsError:
+                logger.debug(f"Chat {active_chat_id} exists, appending message")
                 result_of_append = append_messages(
                     chat_repo=chat_repo,
                     chat_id=active_chat_id,
                     timestamp=active_timestamp,
-                    messages=new_messages,
+                    messages=[user_message],
                     user_email=user_email,
                     es_repo=es_repo,
                 )
@@ -334,15 +345,16 @@ async def websocket_text_generation_endpoint(
                     await websocket.send_json(
                         WebSocketMessage(
                             type=WebSocketMessageType.ERROR,
-                            content="Something went wrong, please try again later",
+                            content="Failed to append message to existing chat",
                         ).model_dump()
                     )
                     continue
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error processing chat message: {e}")
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.ERROR,
-                        content="Something went wrong, please try again later",
+                        content="There was an error, please try again later.",
                     ).model_dump()
                 )
                 continue
@@ -366,7 +378,17 @@ async def websocket_text_generation_endpoint(
                                 type=WebSocketMessageType.TOKEN, content=token
                             ).model_dump()
                         )
+            except Exception as e:
+                logger.error(f"Error during LLM generation: {e}")
+                await websocket.send_json(
+                    WebSocketMessage(
+                        type=WebSocketMessageType.ERROR,
+                        content="The LLM had an error, please try again later.",
+                    ).model_dump()
+                )
+                continue
 
+            try:
                 append_messages(
                     chat_repo=chat_repo,
                     chat_id=active_chat_id,
@@ -384,12 +406,13 @@ async def websocket_text_generation_endpoint(
                         type=WebSocketMessageType.STREAM_FINISHED
                     ).model_dump()
                 )
-
             except Exception as e:
-                logger.error(f"Error during LLM generation: {e}")
+                logger.error(f"Error persisting AI message: {e}")
+                # We don't send an ERROR message here because tokens were already sent
+                # but we should signal finish if possible or just log it
                 await websocket.send_json(
                     WebSocketMessage(
-                        type=WebSocketMessageType.ERROR, content=f"LLM Error: {str(e)}"
+                        type=WebSocketMessageType.STREAM_FINISHED
                     ).model_dump()
                 )
 

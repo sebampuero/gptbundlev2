@@ -34,6 +34,9 @@ def create_test_chat(
     content: str = "Test message",
 ) -> tuple[str, float]:
     chat_repo = ChatRepository()
+    chat_id = chat_id or str(uuid.uuid4())
+    timestamp = timestamp or datetime.now().timestamp()
+
     kwargs = {
         "user_email": user_email,
         "messages": [
@@ -44,11 +47,9 @@ def create_test_chat(
                 llm_model="gpt4",
             )
         ],
+        "chat_id": chat_id,
+        "timestamp": timestamp,
     }
-    if chat_id is not None:
-        kwargs["chat_id"] = chat_id
-    if timestamp is not None:
-        kwargs["timestamp"] = timestamp
 
     chat_in = ChatCreate(**kwargs)
     chat = create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
@@ -244,3 +245,45 @@ def test_websocket_chat_endpoint_first_connection(
                 pytest.fail(f"Websocket error: {ws_msg.content}")
 
     assert "I am a test model!" in total_response
+
+
+def test_websocket_string_timestamp(
+    client: TestClient, cleanup_chats: list, es_repo, cleanup_es: list
+):
+    """Test that the websocket can handle a string timestamp from the client."""
+    chat_id = str(uuid.uuid4())
+    timestamp_str = str(datetime.now().timestamp())
+    total_data = []
+
+    payload = {
+        "user_message": {
+            "content": "Hello",
+            "role": MessageRole.USER,
+            "message_type": "text",
+            "llm_model": "openrouter/mistralai/devstral-2512:free",
+        },
+        "chat_id": chat_id,
+        "timestamp": timestamp_str,
+    }
+
+    token = generate_access_token("test_string_ts@email.com")
+    with client.websocket_connect(
+        f"{settings.API_V1_STR}/messaging/chat/text_ws",
+        cookies={"access_token": token},
+    ) as websocket:
+        websocket.send_json(payload)
+        while True:
+            message = websocket.receive_json()
+            ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
+            total_data.append(ws_msg)
+
+            if ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
+                break
+            elif ws_msg.type == WebSocketMessageType.ERROR:
+                pytest.fail(f"Websocket error: {ws_msg.content}")
+
+    # Cleanup
+    cleanup_chats.append((chat_id, float(timestamp_str)))
+    cleanup_es.append(chat_id)
+
+    assert len(total_data) > 0

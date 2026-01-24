@@ -38,6 +38,9 @@ class ElasticsearchRepository:
                 f"Chat with id {chat.chat_id} already exists"
             ) from e
 
+    def update_chat(self, chat: Chat) -> None:
+        self.client.index(index="chats", document=chat.dict(), id=chat.chat_id)
+
     def delete_chat(self, chat_id: str) -> None:
         self.client.delete(index="chats", id=chat_id)
 
