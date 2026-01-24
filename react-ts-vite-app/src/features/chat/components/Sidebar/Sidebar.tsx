@@ -15,6 +15,7 @@ interface SidebarProps {
     noMoreChatsToLoad: boolean;
     searchChats: (searchTerm: string) => void;
     onSelectChat: (chatId: string, timestamp: number) => void;
+    currentChat: { chatId?: string; timestamp?: string };
 }
 
 export const Sidebar = ({
@@ -27,7 +28,8 @@ export const Sidebar = ({
     onLoadMoreChats,
     noMoreChatsToLoad,
     searchChats,
-    onSelectChat
+    onSelectChat,
+    currentChat
 }: SidebarProps) => {
 
     return (
@@ -78,6 +80,8 @@ export const Sidebar = ({
                             timestamp={date}
                             rawTimestamp={chat.timestamp}
                             onDelete={onDeleteChat}
+                            currentChat={currentChat}
+                            startNewChat={startNewChat}
                             onSelectChat={onSelectChat}
                         />
                     );

@@ -323,6 +323,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
 
     const startNewChat = useCallback(() => {
         setMessages([]);
+        chatIdRef.current = undefined;
+        timestampRef.current = undefined;
     }, []);
 
     return {

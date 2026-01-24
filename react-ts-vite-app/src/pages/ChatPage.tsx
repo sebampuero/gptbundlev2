@@ -93,6 +93,7 @@ export const ChatPage = () => {
                         noMoreChatsToLoad={noMoreChatsToLoad}
                         searchChats={searchChats}
                         onSelectChat={handleSelectChat}
+                        currentChat={currentChat}
                     />
                 </Box>
 

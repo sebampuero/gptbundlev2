@@ -7,10 +7,21 @@ interface ChatListItemProps {
     timestamp: string;
     rawTimestamp: number;
     onDelete: (id: string, timestamp: number) => void;
+    currentChat: { chatId?: string; timestamp?: string };
+    startNewChat: () => void;
     onSelectChat: (id: string, timestamp: number) => void;
 }
 
-export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, onSelectChat }: ChatListItemProps) => {
+export const ChatListItem = ({
+    id,
+    title,
+    timestamp,
+    rawTimestamp,
+    onDelete,
+    currentChat,
+    startNewChat,
+    onSelectChat
+}: ChatListItemProps) => {
     return (
         <Box
             p={3}
@@ -39,6 +50,9 @@ export const ChatListItem = ({ id, title, timestamp, rawTimestamp, onDelete, onS
                         onClick={(e) => {
                             e.stopPropagation();
                             onDelete(id, rawTimestamp);
+                            if (currentChat.chatId === id) {
+                                startNewChat();
+                            }
                         }}
                     />
                 </HStack>

@@ -12,7 +12,6 @@ import { useState, useCallback, useMemo } from "react";
 import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
-import { useNavigate } from "react-router-dom";
 import { useLLModels } from "../../hooks/useLLModels";
 import { useModel } from "../../../../context/ModelContext";
 import { useRef } from "react";
@@ -52,7 +51,6 @@ export const ChatInputArea = ({
     const { open, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState("");
     const [pastedImages, setPastedImages] = useState<PastedImage[]>([]);
-    const navigate = useNavigate();
     const { models } = useLLModels();
     const { selectedModel } = useModel();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +99,6 @@ export const ChatInputArea = ({
 
     const onStartNewChatBtnClicked = () => {
         onClose();
-        navigate("/chat", { replace: true });
         onStartNewChat();
     };
 
