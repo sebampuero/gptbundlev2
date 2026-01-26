@@ -35,7 +35,11 @@ class ElasticsearchRepository:
     def store_chat(self, chat: Chat) -> None:
         try:
             self.client.index(
-                index="chats", document=chat.dict(), id=chat.chat_id, op_type="create"
+                index="chats",
+                document=chat.dict(),
+                id=chat.chat_id,
+                op_type="create",
+                refresh=True,
             )
             logger.debug(f"Chat with id {chat.chat_id} stored successfully in ES")
         except ConflictError as e:
@@ -44,10 +48,12 @@ class ElasticsearchRepository:
             ) from e
 
     def update_chat(self, chat: Chat) -> None:
-        self.client.index(index="chats", document=chat.dict(), id=chat.chat_id)
+        self.client.index(
+            index="chats", document=chat.dict(), id=chat.chat_id, refresh=True
+        )
 
     def delete_chat(self, chat_id: str) -> None:
-        self.client.delete(index="chats", id=chat_id)
+        self.client.delete(index="chats", id=chat_id, refresh=True)
 
     def search_chats(self, user_email: str, query: str) -> list[Chat]:
         search_query = {

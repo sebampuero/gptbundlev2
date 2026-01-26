@@ -10,12 +10,13 @@ export const useChats = () => {
     const [error, setError] = useState<string | null>(null);
     const [noMoreChatsToLoad, setNoMoreChatsToLoad] = useState(false);
     const lastEvalKey = useRef<string | null>(null);
-    const paginationLimit = 20;
+    const paginationLimit = 15;
 
     const fetchChats = useCallback(async (newChatRefresh: boolean = false) => {
         setIsLoading(true);
         setError(null);
         try {
+            console.log("New chat refresh was: ", newChatRefresh);
             if (newChatRefresh) {
                 lastEvalKey.current = null;
                 setChats([]);
@@ -27,7 +28,7 @@ export const useChats = () => {
                     ...(lastEvalKey.current && { last_eval_key: JSON.stringify(lastEvalKey.current) }),
                 },
             });
-
+            console.log("Fetched chats: ", response.data);
             setChats(prev => [...prev, ...response.data.items]);
             lastEvalKey.current = response.data.last_eval_key;
             setNoMoreChatsToLoad(response.data.last_eval_key === null);

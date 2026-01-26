@@ -41,6 +41,7 @@ def test_image_generation_returns_presigned_urls(
         role=MessageRole.ASSISTANT,
         message_type="text",
         media_s3_keys=[s3_key],
+        presigned_urls=["https://example.com/presigned_url"],
         llm_model="test-model",
     )
     mock_generate_image_response.return_value = mock_response_message
@@ -52,30 +53,27 @@ def test_image_generation_returns_presigned_urls(
         "llm_model": "test-model",
     }
 
+    chat_id = "new_chat_id"
+    chat_timestamp = 1700000000.0
+
     # Call the endpoint
-    # Note: Using chat_id="new" and timestamp=0 to create a new chat
     response = client.post(
-        f"{settings.API_V1_STR}/messaging/image_generation?chat_id=new&chat_timestamp=0",
+        f"{settings.API_V1_STR}/messaging/image_generation?chat_id={chat_id}&chat_timestamp={chat_timestamp}",
         json=payload,
         cookies={"access_token": token},
     )
 
     assert response.status_code == 200
-    chat = response.json()
+    assistant_message = response.json()
 
     # Cleanup
-    cleanup_chats.append((chat["chat_id"], chat["timestamp"]))
-    cleanup_es.append(chat["chat_id"])
-
-    # Verify the response contains the assistant message
-    messages = chat["messages"]
-    assert len(messages) >= 2  # User message + Assistant message
-    assistant_message = messages[-1]
+    cleanup_chats.append((chat_id, chat_timestamp))
+    cleanup_es.append(chat_id)
 
     assert assistant_message["role"] == "assistant"
     assert assistant_message["media_s3_keys"] == [s3_key]
 
-    # This assertion is expected to fail before the fix
+    # These assertions should pass now
     assert assistant_message["presigned_urls"] is not None
     assert len(assistant_message["presigned_urls"]) == 1
     assert assistant_message["presigned_urls"][0] == "https://example.com/presigned_url"

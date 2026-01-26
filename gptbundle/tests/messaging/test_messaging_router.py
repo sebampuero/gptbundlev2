@@ -1,6 +1,7 @@
 import json
 import uuid
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -223,26 +224,42 @@ def test_websocket_chat_endpoint_first_connection(
     }
 
     token = generate_access_token("test@email.com")
-    with client.websocket_connect(
-        f"{settings.API_V1_STR}/messaging/chat/text_ws/new/0",
-        cookies={"access_token": token},
-    ) as websocket:
-        websocket.send_json(payload)
-        while True:
-            message = websocket.receive_json()
-            ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
+    chat_id = str(uuid.uuid4())
+    timestamp = datetime.now().timestamp()
 
-            if ws_msg.type == WebSocketMessageType.NEW_CHAT:
-                assert is_valid_uuid4(ws_msg.chat_id)
-                assert ws_msg.chat_timestamp > 0
-                cleanup_chats.append((ws_msg.chat_id, ws_msg.chat_timestamp))
-                cleanup_es.append(ws_msg.chat_id)
-            elif ws_msg.type == WebSocketMessageType.TOKEN:
-                total_response += ws_msg.content
-            elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
-                break
-            elif ws_msg.type == WebSocketMessageType.ERROR:
-                pytest.fail(f"Websocket error: {ws_msg.content}")
+    mock_chunk = AsyncMock()
+    mock_chunk.choices = [AsyncMock()]
+    mock_chunk.choices[0].delta.content = "I am a test model!"
+
+    # We need an async generator for the mock
+    async def mock_gen(*args, **kwargs):
+        yield mock_chunk
+
+    with patch(
+        "gptbundle.messaging.router.generate_text_response", side_effect=mock_gen
+    ):
+        with client.websocket_connect(
+            f"{settings.API_V1_STR}/messaging/chat/text_ws",
+            cookies={"access_token": token},
+        ) as websocket:
+            payload["chat_id"] = chat_id
+            payload["timestamp"] = timestamp
+            websocket.send_json(payload)
+            while True:
+                message = websocket.receive_json()
+                ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
+
+                if ws_msg.type == WebSocketMessageType.NEW_CHAT:
+                    assert is_valid_uuid4(ws_msg.chat_id)
+                    assert ws_msg.chat_timestamp > 0
+                    cleanup_chats.append((ws_msg.chat_id, ws_msg.chat_timestamp))
+                    cleanup_es.append(ws_msg.chat_id)
+                elif ws_msg.type == WebSocketMessageType.TOKEN:
+                    total_response += ws_msg.content
+                elif ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
+                    break
+                elif ws_msg.type == WebSocketMessageType.ERROR:
+                    pytest.fail(f"Websocket error: {ws_msg.content}")
 
     assert "I am a test model!" in total_response
 
@@ -267,20 +284,31 @@ def test_websocket_string_timestamp(
     }
 
     token = generate_access_token("test_string_ts@email.com")
-    with client.websocket_connect(
-        f"{settings.API_V1_STR}/messaging/chat/text_ws",
-        cookies={"access_token": token},
-    ) as websocket:
-        websocket.send_json(payload)
-        while True:
-            message = websocket.receive_json()
-            ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
-            total_data.append(ws_msg)
 
-            if ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
-                break
-            elif ws_msg.type == WebSocketMessageType.ERROR:
-                pytest.fail(f"Websocket error: {ws_msg.content}")
+    mock_chunk = AsyncMock()
+    mock_chunk.choices = [AsyncMock()]
+    mock_chunk.choices[0].delta.content = "Hello there!"
+
+    async def mock_gen(*args, **kwargs):
+        yield mock_chunk
+
+    with patch(
+        "gptbundle.messaging.router.generate_text_response", side_effect=mock_gen
+    ):
+        with client.websocket_connect(
+            f"{settings.API_V1_STR}/messaging/chat/text_ws",
+            cookies={"access_token": token},
+        ) as websocket:
+            websocket.send_json(payload)
+            while True:
+                message = websocket.receive_json()
+                ws_msg: WebSocketMessage = WebSocketMessage.model_validate(message)
+                total_data.append(ws_msg)
+
+                if ws_msg.type == WebSocketMessageType.STREAM_FINISHED:
+                    break
+                elif ws_msg.type == WebSocketMessageType.ERROR:
+                    pytest.fail(f"Websocket error: {ws_msg.content}")
 
     # Cleanup
     cleanup_chats.append((chat_id, float(timestamp_str)))
