@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from gptbundle.media_storage.storage import delete_objects, generate_presigned_url
@@ -5,6 +6,8 @@ from gptbundle.media_storage.storage import delete_objects, generate_presigned_u
 from .elasticsearch_repository import ElasticsearchRepository
 from .repository import ChatRepository
 from .schemas import Chat, ChatCreate, MessageCreate
+
+logger = logging.getLogger(__name__)
 
 
 def create_chat(

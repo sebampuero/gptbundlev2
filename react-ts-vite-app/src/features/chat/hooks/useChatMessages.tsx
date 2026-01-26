@@ -243,6 +243,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 return prev;
             });
             const message = response.data;
+            console.log("The assistant message with image is: ", message);
             setMessages((prev) => [...prev, { ...message, is_loading_message: false }]);
         } catch (error) {
             console.error("Error generating image:", error);

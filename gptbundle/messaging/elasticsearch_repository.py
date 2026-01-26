@@ -1,8 +1,12 @@
+import logging
+
 from elasticsearch import ConflictError, Elasticsearch
 
 from gptbundle.common.config import settings
 from gptbundle.messaging.exceptions import ChatAlreadyExistsError
 from gptbundle.messaging.schemas import Chat
+
+logger = logging.getLogger(__name__)
 
 
 class ElasticsearchRepository:
@@ -33,6 +37,7 @@ class ElasticsearchRepository:
             self.client.index(
                 index="chats", document=chat.dict(), id=chat.chat_id, op_type="create"
             )
+            logger.debug(f"Chat with id {chat.chat_id} stored successfully in ES")
         except ConflictError as e:
             raise ChatAlreadyExistsError(
                 f"Chat with id {chat.chat_id} already exists"

@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import logging
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -10,6 +11,8 @@ from gptbundle.messaging.schemas import Chat as MessagingChat
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
 from .chat_factory import convert_chat_to_model
+
+logger = logging.getLogger(__name__)
 
 
 async def generate_text_response(chat: MessagingChat) -> AsyncGenerator[str, None]:
@@ -32,6 +35,7 @@ async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
     images = response.choices[0].message.images
     s3_keys = []
     presigned_urls = []
+    logger.debug(f"Generated images: {images}")
     for image in images:
         if image.get("type") == "image_url":
             _, encoded = image.get("image_url").get("url").split(",", 1)

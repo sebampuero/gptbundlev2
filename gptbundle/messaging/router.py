@@ -191,7 +191,7 @@ def search_chats(
 
 @router.post(
     "/image_generation",
-    response_model=Chat,
+    response_model=MessageCreate,
     responses={
         401: {"description": "User not authenticated"},
     },
@@ -214,6 +214,7 @@ async def generate_image(
             detail="User not authenticated",
         )
     response_message = await generate_image_response(user_message)
+    logger.debug(f"The generated response message is {response_message}")
     try:
         chat = create_chat(
             chat_in=ChatCreate(
@@ -249,12 +250,7 @@ async def generate_image(
             status_code=500,
             detail="Error creating chat",
         ) from e
-    return get_chat(
-        chat_id=chat_id,
-        timestamp=chat_timestamp,
-        chat_repo=chat_repo,
-        user_email=user_email,
-    )
+    return response_message
 
 
 @router.websocket("/chat/text_ws")
