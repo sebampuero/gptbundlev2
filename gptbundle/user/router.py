@@ -2,7 +2,7 @@ import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from gptbundle.common.config import settings
 from gptbundle.common.db import get_pg_db
@@ -14,7 +14,7 @@ from .service import create_user, login
 
 router = APIRouter()
 
-SessionDep = Annotated[Session, Depends(get_pg_db)]
+SessionDep = Annotated[AsyncSession, Depends(get_pg_db)]
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
         422: {"description": "Registration is currently disabled."},
     },
 )
-def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+async def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     if not settings.ALLOW_REGISTRATION:
         raise HTTPException(
             status_code=422,
@@ -34,7 +34,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
         )
     user_create = UserCreate.model_validate(user_in)
     try:
-        user = create_user(session=session, user_create=user_create)
+        user = await create_user(session=session, user_create=user_create)
     except UserAlreadyExistsError as e:
         raise HTTPException(
             status_code=409,
@@ -48,8 +48,10 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     response_model=UserResponse,
     responses={403: {"description": "Invalid username or password"}},
 )
-def login_user(session: SessionDep, user_in: UserLogin, response: Response) -> Any:
-    user = login(session=session, user=user_in)
+async def login_user(
+    session: SessionDep, user_in: UserLogin, response: Response
+) -> Any:
+    user = await login(session=session, user=user_in)
     if not user:
         raise HTTPException(
             status_code=403,

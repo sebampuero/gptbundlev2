@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 
 import typer
@@ -36,32 +37,29 @@ def create_user(
 ):
     user_in = UserCreate(email=email, username=username, password=password)
 
-    db_gen = get_pg_db()
-    session = next(db_gen)
+    async def _run():
+        async for session in get_pg_db():
+            return await service_create_user(user_create=user_in, session=session)
 
     try:
-        user = service_create_user(user_create=user_in, session=session)
+        user = asyncio.run(_run())
         console.print(
             f"[green]Successfully created user:[/green] {user.username} ({user.email})"
         )
     except Exception as e:
         console.print(f"[red]Error creating user:[/red] {e}")
-    finally:
-        # Since it's a generator that yields a session managed by a context manager,
-        # we don't strictly need to close it here if the generator logic handles it,
-        # but the current get_pg_db uses 'with Session(engine) as session:'
-        pass
 
 
 @app.command()
 def delete_user(
     email: str = typer.Argument(..., help="The email of the user to delete"),
 ):
-    db_gen = get_pg_db()
-    session = next(db_gen)
+    async def _run():
+        async for session in get_pg_db():
+            return await service_delete_user(email=email, session=session)
 
     try:
-        success = service_delete_user(email=email, session=session)
+        success = asyncio.run(_run())
         if success:
             console.print(
                 f"[green]Successfully deleted user with email:[/green] {email}"
@@ -76,11 +74,12 @@ def delete_user(
 def deactivate_user(
     email: str = typer.Argument(..., help="The email of the user to deactivate"),
 ):
-    db_gen = get_pg_db()
-    session = next(db_gen)
+    async def _run():
+        async for session in get_pg_db():
+            return await service_deactivate_user(email=email, session=session)
 
     try:
-        success = service_deactivate_user(email=email, session=session)
+        success = asyncio.run(_run())
         if success:
             console.print(
                 f"[green]Successfully deactivated user with email:[/green] {email}"
@@ -95,11 +94,12 @@ def deactivate_user(
 def activate_user(
     email: str = typer.Argument(..., help="The email of the user to activate"),
 ):
-    db_gen = get_pg_db()
-    session = next(db_gen)
+    async def _run():
+        async for session in get_pg_db():
+            return await service_activate_user(email=email, session=session)
 
     try:
-        success = service_activate_user(email=email, session=session)
+        success = asyncio.run(_run())
         if success:
             console.print(
                 f"[green]Successfully activated user with email:[/green] {email}"
@@ -112,11 +112,12 @@ def activate_user(
 
 @app.command()
 def list_users():
-    db_gen = get_pg_db()
-    session = next(db_gen)
+    async def _run():
+        async for session in get_pg_db():
+            return await service_get_users(session=session)
 
     try:
-        users = service_get_users(session=session)
+        users = asyncio.run(_run())
         if not users:
             console.print("[yellow]No users found in the database.[/yellow]")
             return

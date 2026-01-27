@@ -1,12 +1,13 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
-from sqlmodel import Session, create_engine
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from .config import settings
 
-engine = create_engine(str(settings.sqlalchemy_database_uri))
+engine = create_async_engine(str(settings.sqlalchemy_database_uri))
 
 
-def get_pg_db() -> Generator[Session, None, None]:
-    with Session(engine) as session:
+async def get_pg_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSession(engine) as session:
         yield session

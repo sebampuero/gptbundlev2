@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     @property
     def sqlalchemy_database_uri(self) -> PostgresDsn:
         return PostgresDsn.build(
-            scheme="postgresql",
+            scheme="postgresql+asyncpg",
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
             host=self.POSTGRES_HOST,
