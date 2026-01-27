@@ -2,7 +2,6 @@ import {
     Box,
     DialogRoot,
     DialogContent,
-    DialogHeader,
     DialogBody,
     Portal,
     Button,
