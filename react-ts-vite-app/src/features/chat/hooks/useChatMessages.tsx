@@ -149,6 +149,9 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             chatIdRef.current = chatMetadata.chatId;
             timestampRef.current = chatMetadata.timestamp;
             fetchHistory(chatMetadata.chatId, chatMetadata.timestamp);
+            // and also start a fresh ws connection
+            ws.current?.close();
+            connect();
         } else {
             // New chat mode
             chatIdRef.current = undefined;
