@@ -1,26 +1,36 @@
 import pytest
-from sqlmodel import Session
+import pytest_asyncio
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from gptbundle.common.db import engine
+
+@pytest_asyncio.fixture(loop_scope="function")
+async def engine_fixture():
+    """
+    Fixture to provide a fresh engine for each test.
+    This ensures the engine is bound to the current event loop.
+    """
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from gptbundle.common.config import settings
+
+    engine = create_async_engine(str(settings.sqlalchemy_database_uri))
+    yield engine
+    await engine.dispose()
 
 
-@pytest.fixture
-def session():
+@pytest_asyncio.fixture(loop_scope="function")
+async def session(engine_fixture):
     """
     Fixture to provide a session for tests.
     """
-    with Session(engine) as session:
+    async with AsyncSession(engine_fixture) as session:
         yield session
 
 
-@pytest.fixture(name="cleanup_users")
-def cleanup_users_fixture(session: Session):
+@pytest_asyncio.fixture(name="cleanup_users", loop_scope="function")
+async def cleanup_users_fixture():
     """
     Fixture to track and delete users created during tests.
-    Usage:
-        def test_something(session, cleanup_users):
-            user = create_user(...)
-            cleanup_users.append(user.id)
     """
     user_ids = []
     yield user_ids
@@ -28,22 +38,27 @@ def cleanup_users_fixture(session: Session):
     if not user_ids:
         return
 
+    from sqlalchemy.ext.asyncio import create_async_engine
     from sqlmodel import delete
 
+    from gptbundle.common.config import settings
     from gptbundle.user.models import User
 
-    for user_id in user_ids:
-        statement = delete(User).where(User.id == user_id)
-        session.exec(statement)
-    session.commit()
+    engine = create_async_engine(str(settings.sqlalchemy_database_uri))
+    async with AsyncSession(engine) as session:
+        for user_id in user_ids:
+            statement = delete(User).where(User.id == user_id)
+            await session.exec(statement)
+        await session.commit()
+    await engine.dispose()
 
 
-@pytest.fixture(name="client")
-def client_fixture(session: Session):
+@pytest_asyncio.fixture(name="client")
+async def client_fixture(session: AsyncSession):
     """
-    Fixture to provide a TestClient with overridden database dependency.
+    Fixture to provide an AsyncClient with overridden database dependency.
     """
-    from fastapi.testclient import TestClient
+    from httpx import ASGITransport, AsyncClient
 
     from gptbundle.common.db import get_pg_db
     from gptbundle.main import app
@@ -52,8 +67,12 @@ def client_fixture(session: Session):
         return session
 
     app.dependency_overrides[get_pg_db] = get_session_override
-    client = TestClient(app)
-    yield client
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        yield client
+
     app.dependency_overrides.clear()
 
 

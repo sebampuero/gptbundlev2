@@ -1,11 +1,13 @@
-from fastapi.testclient import TestClient
-from sqlmodel import Session
+import pytest
+from httpx import AsyncClient
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from gptbundle.common.config import settings
 
 
-def test_register_user_success(client: TestClient, cleanup_users: list[int]):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_register_user_success(client: AsyncClient, cleanup_users: list[int]):
+    response = await client.post(
         f"{settings.API_V1_STR}/user/register",
         json={
             "email": "test_api@example.com",
@@ -21,8 +23,9 @@ def test_register_user_success(client: TestClient, cleanup_users: list[int]):
     cleanup_users.append(content["id"])
 
 
-def test_register_user_duplicate_email(
-    client: TestClient, session: Session, cleanup_users: list[int]
+@pytest.mark.asyncio
+async def test_register_user_duplicate_email(
+    client: AsyncClient, session: AsyncSession, cleanup_users: list[int]
 ):
     from gptbundle.user.models import UserCreate
     from gptbundle.user.service import create_user
@@ -30,10 +33,10 @@ def test_register_user_duplicate_email(
     user_in = UserCreate(
         email="duplicate@example.com", password="password123", username="duplicate_user"
     )
-    user = create_user(session=session, user_create=user_in)
+    user = await create_user(session=session, user_create=user_in)
     cleanup_users.append(user.id)
 
-    response = client.post(
+    response = await client.post(
         f"{settings.API_V1_STR}/user/register",
         json={
             "email": "duplicate@example.com",
@@ -45,8 +48,9 @@ def test_register_user_duplicate_email(
     assert response.json()["detail"] == "Username or email is already taken."
 
 
-def test_login_user_success(
-    client: TestClient, session: Session, cleanup_users: list[int]
+@pytest.mark.asyncio
+async def test_login_user_success(
+    client: AsyncClient, session: AsyncSession, cleanup_users: list[int]
 ):
     from gptbundle.user.models import UserCreate
     from gptbundle.user.service import create_user
@@ -54,10 +58,10 @@ def test_login_user_success(
     user_in = UserCreate(
         email="login_test@example.com", password="password123", username="login_user"
     )
-    user = create_user(session=session, user_create=user_in)
+    user = await create_user(session=session, user_create=user_in)
     cleanup_users.append(user.id)
 
-    response = client.post(
+    response = await client.post(
         f"{settings.API_V1_STR}/user/login",
         json={"username": "login_user", "password": "password123"},
     )
@@ -70,8 +74,9 @@ def test_login_user_success(
     assert content["email"] == "login_test@example.com"
 
 
-def test_login_user_not_found(client: TestClient):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_login_user_not_found(client: AsyncClient):
+    response = await client.post(
         f"{settings.API_V1_STR}/user/login",
         json={"username": "non_existent_user", "password": "password123"},
     )
@@ -79,11 +84,12 @@ def test_login_user_not_found(client: TestClient):
     assert response.json()["detail"] == "Invalid username or password"
 
 
-def test_register_user_disabled(client: TestClient):
+@pytest.mark.asyncio
+async def test_register_user_disabled(client: AsyncClient):
     from unittest.mock import patch
 
     with patch("gptbundle.user.router.settings.ALLOW_REGISTRATION", False):
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/user/register",
             json={
                 "email": "disabled@example.com",

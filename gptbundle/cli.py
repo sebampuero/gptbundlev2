@@ -19,6 +19,9 @@ from gptbundle.user.service import (
     deactivate_user as service_deactivate_user,
 )
 from gptbundle.user.service import (
+    delete_all_users as service_delete_all_users,
+)
+from gptbundle.user.service import (
     delete_user_by_email as service_delete_user,
 )
 from gptbundle.user.service import (
@@ -139,6 +142,19 @@ def list_users():
         console.print(table)
     except Exception as e:
         console.print(f"[red]Error listing users:[/red] {e}")
+
+
+@app.command(help="Deletes all users. WARNING: use only in development environment!")
+def delete_all_users():
+    async def _run():
+        async for session in get_pg_db():
+            return await service_delete_all_users(session=session)
+
+    try:
+        count = asyncio.run(_run())
+        console.print(f"[green]Successfully deleted {count} users.[/green]")
+    except Exception as e:
+        console.print(f"[red]Error deleting all users:[/red] {e}")
 
 
 @app.command()

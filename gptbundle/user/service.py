@@ -79,3 +79,12 @@ async def activate_user(email: str, session: AsyncSession) -> bool:
 
 async def get_users(session: AsyncSession) -> list[User]:
     return (await session.exec(select(User))).all()
+
+
+async def delete_all_users(session: AsyncSession) -> int:
+    from sqlmodel import delete
+
+    statement = delete(User)
+    result = await session.exec(statement)
+    await session.commit()
+    return result.rowcount
