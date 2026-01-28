@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Annotated, Any
@@ -49,7 +50,7 @@ UserEmailDep = Annotated[str, Depends(get_current_user)]
         401: {"description": "User not authenticated"},
     },
 )
-def retrieve_chat(
+async def retrieve_chat(
     chat_repo: ChatRepositoryDep,
     chat_id: str,
     timestamp: float,
@@ -61,7 +62,7 @@ def retrieve_chat(
             status_code=401,
             detail="User not authenticated",
         )
-    chat = get_chat(
+    chat = await get_chat(
         chat_repo=chat_repo, chat_id=chat_id, timestamp=timestamp, user_email=user_email
     )
     if not chat:
@@ -80,7 +81,7 @@ def retrieve_chat(
         401: {"description": "User not authenticated"},
     },
 )
-def retrieve_chats(
+async def retrieve_chats(
     chat_repo: ChatRepositoryDep,
     user_email: UserEmailDep,
     limit: int | None = Query(None, description="Limit the number of chats returned"),
@@ -105,7 +106,7 @@ def retrieve_chats(
                 detail="Invalid last_eval_key format. Expected JSON string.",
             ) from e
 
-    chats_response = get_chats_by_user_email_paginated(
+    chats_response = await get_chats_by_user_email_paginated(
         chat_repo=chat_repo,
         user_email=user_email,
         limit=limit,
@@ -126,7 +127,7 @@ def retrieve_chats(
         401: {"description": "User not authenticated"},
     },
 )
-def remove_chat(
+async def remove_chat(
     chat_repo: ChatRepositoryDep,
     es_repo: ElasticsearchRepositoryDep,
     chat_id: str,
@@ -141,7 +142,7 @@ def remove_chat(
             status_code=401,
             detail="User not authenticated",
         )
-    deleted = delete_chat(
+    deleted = await delete_chat(
         chat_repo=chat_repo,
         chat_id=chat_id,
         timestamp=timestamp,
@@ -163,7 +164,7 @@ def remove_chat(
         401: {"description": "User not authenticated"},
     },
 )
-def search_chats(
+async def search_chats(
     es_repo: ElasticsearchRepositoryDep,
     user_email: UserEmailDep,
     search_term: str,
@@ -178,7 +179,7 @@ def search_chats(
             detail="User not authenticated",
         )
 
-    chats = search_chats_by_keyword(
+    chats = await search_chats_by_keyword(
         es_repo=es_repo, user_email=user_email, search_term=search_term
     )
     if not chats:
@@ -216,7 +217,7 @@ async def generate_image(
     response_message = await generate_image_response(user_message)
     logger.debug(f"The generated response message is {response_message}")
     try:
-        chat = create_chat(
+        chat = await create_chat(
             chat_in=ChatCreate(
                 user_email=user_email,
                 messages=[user_message],
@@ -226,7 +227,7 @@ async def generate_image(
             chat_repo=chat_repo,
             es_repo=es_repo,
         )
-        append_messages(
+        await append_messages(
             chat_id=chat.chat_id,
             timestamp=chat.timestamp,
             messages=[response_message],
@@ -236,7 +237,7 @@ async def generate_image(
         )
     except ChatAlreadyExistsError as e:
         logger.debug(f"Chat existed already: {e}")
-        append_messages(
+        await append_messages(
             chat_id=chat_id,
             timestamp=chat_timestamp,
             messages=[user_message, response_message],
@@ -307,7 +308,9 @@ async def websocket_text_generation_endpoint(
 
             if user_message.media_s3_keys:
                 for s3_key in user_message.media_s3_keys:
-                    move_file(s3_key, s3_key.replace("temp/", "permanent/"))
+                    await asyncio.to_thread(
+                        move_file, s3_key, s3_key.replace("temp/", "permanent/")
+                    )
                 user_message.media_s3_keys = [
                     s3_key.replace("temp/", "permanent/")
                     for s3_key in user_message.media_s3_keys
@@ -321,7 +324,7 @@ async def websocket_text_generation_endpoint(
                     chat_id=active_chat_id,
                     timestamp=active_timestamp,
                 )
-                create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
+                await create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
                 logger.debug(
                     f"Created new chat for user: {user_email} "
                     f"with chat_id: {active_chat_id} and "
@@ -329,7 +332,7 @@ async def websocket_text_generation_endpoint(
                 )
             except ChatAlreadyExistsError:
                 logger.debug(f"Chat {active_chat_id} exists, appending message")
-                result_of_append = append_messages(
+                result_of_append = await append_messages(
                     chat_repo=chat_repo,
                     chat_id=active_chat_id,
                     timestamp=active_timestamp,
@@ -385,7 +388,7 @@ async def websocket_text_generation_endpoint(
                 continue
 
             try:
-                append_messages(
+                await append_messages(
                     chat_repo=chat_repo,
                     chat_id=active_chat_id,
                     timestamp=active_timestamp,

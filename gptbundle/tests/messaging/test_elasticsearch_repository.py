@@ -1,10 +1,12 @@
-import time
 from datetime import datetime
+
+import pytest
 
 from gptbundle.messaging.schemas import Chat, MessageCreate, MessageRole
 
 
-def test_store_and_search_chat(es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_store_and_search_chat(es_repo, cleanup_es: list):
     chat_id = "test_es_search_id"
     user_email = "es_test@example.com"
     timestamp = datetime.now().timestamp()
@@ -23,20 +25,18 @@ def test_store_and_search_chat(es_repo, cleanup_es: list):
         ],
     )
 
-    es_repo.store_chat(chat)
+    await es_repo.store_chat(chat)
     cleanup_es.append(chat_id)
 
-    # ES is near real-time, might need a tiny wait or refresh
-    time.sleep(1)
-
     # Search for the chat
-    results = es_repo.search_chats(user_email, "unique keyword")
+    results = await es_repo.search_chats(user_email, "unique keyword")
     assert len(results) > 0
     assert results[0].chat_id == chat_id
     assert results[0].user_email == user_email
 
 
-def test_search_chats_filtering(es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_search_chats_filtering(es_repo, cleanup_es: list):
     user1 = "user1@example.com"
     user2 = "user2@example.com"
     keyword = "sharedcontent"
@@ -68,25 +68,24 @@ def test_search_chats_filtering(es_repo, cleanup_es: list):
         ],
     )
 
-    es_repo.store_chat(chat1)
-    es_repo.store_chat(chat2)
+    await es_repo.store_chat(chat1)
+    await es_repo.store_chat(chat2)
     cleanup_es.append(chat1.chat_id)
     cleanup_es.append(chat2.chat_id)
 
-    time.sleep(1)
-
     # User 1 should only see their chat
-    results1 = es_repo.search_chats(user1, keyword)
+    results1 = await es_repo.search_chats(user1, keyword)
     assert len(results1) == 1
     assert results1[0].user_email == user1
 
     # User 2 should only see their chat
-    results2 = es_repo.search_chats(user2, keyword)
+    results2 = await es_repo.search_chats(user2, keyword)
     assert len(results2) == 1
     assert results2[0].user_email == user2
 
 
-def test_delete_from_es(es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_delete_from_es(es_repo, cleanup_es: list):
     chat_id = "to_be_deleted_from_es"
     user_email = "delete_test@example.com"
 
@@ -104,21 +103,17 @@ def test_delete_from_es(es_repo, cleanup_es: list):
         ],
     )
 
-    es_repo.store_chat(chat)
+    await es_repo.store_chat(chat)
     # We'll manually delete, but cleanup_es is a safety net
     cleanup_es.append(chat_id)
 
-    time.sleep(1)
-
     # Verify it exists
-    results = es_repo.search_chats(user_email, "delete")
+    results = await es_repo.search_chats(user_email, "delete")
     assert len(results) == 1
 
     # Delete it
-    es_repo.delete_chat(chat_id)
-
-    time.sleep(1)
+    await es_repo.delete_chat(chat_id)
 
     # Verify it's gone
-    results_after = es_repo.search_chats(user_email, "delete")
+    results_after = await es_repo.search_chats(user_email, "delete")
     assert len(results_after) == 0

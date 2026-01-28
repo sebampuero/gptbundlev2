@@ -1,4 +1,5 @@
-import pytest
+import asyncio
+
 import pytest_asyncio
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -76,8 +77,8 @@ async def client_fixture(session: AsyncSession):
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(name="cleanup_chats")
-def cleanup_chats_fixture():
+@pytest_asyncio.fixture(name="cleanup_chats")
+async def cleanup_chats_fixture():
     """
     Fixture to track and delete chats created during tests.
     Usage:
@@ -95,23 +96,27 @@ def cleanup_chats_fixture():
 
     for chat_id, timestamp in chat_keys:
         try:
-            Chat.get(chat_id, timestamp).delete()
+            await asyncio.to_thread(Chat.get, chat_id, timestamp).delete()
         except Chat.DoesNotExist:
             pass
 
 
-@pytest.fixture(name="es_repo")
-def es_repo_fixture():
+@pytest_asyncio.fixture(name="es_repo")
+async def es_repo_fixture():
     """
     Fixture to provide an ElasticsearchRepository instance.
     """
     from gptbundle.messaging.elasticsearch_repository import ElasticsearchRepository
 
-    return ElasticsearchRepository()
+    # is this why singleton is not very wanted?
+    # because testing it is "clunky"
+    ElasticsearchRepository._client = None
+    yield ElasticsearchRepository()
+    ElasticsearchRepository._client.close()
 
 
-@pytest.fixture(name="cleanup_es")
-def cleanup_es_fixture(es_repo):
+@pytest_asyncio.fixture(name="cleanup_es")
+async def cleanup_es_fixture(es_repo):
     """
     Fixture to track and delete Elasticsearch documents created during tests.
     Usage:
@@ -126,6 +131,6 @@ def cleanup_es_fixture(es_repo):
 
     for chat_id in chat_ids:
         try:
-            es_repo.delete_chat(chat_id)
+            await es_repo.delete_chat(chat_id)
         except Exception:
             pass

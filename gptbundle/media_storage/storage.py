@@ -1,5 +1,8 @@
 import logging
 
+# We are not using aioboto for now because it is
+# still not officially supported by AWS. And I had
+# bad experiences with it when I used it with DynamoDB
 import boto3
 from botocore.exceptions import ClientError
 
