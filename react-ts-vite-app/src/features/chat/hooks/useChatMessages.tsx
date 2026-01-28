@@ -35,10 +35,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const [isProcessingMessage, setIsProcessingMessage] = useState(false);
-    const reconnectTimeoutRef = useRef<number | null>(null);
     const [isOutputVisionSelected, setIsOutputVisionSelectedState] = useState(false);
     const isOutputVisionSelectedRef = useRef(false);
-    const isManuallyClosed = useRef(false);
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
     const currentMediaS3Keys = useRef<string[]>([]);
@@ -58,8 +56,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     }, [selectedModel, models, isOutputVisionSelected]);
 
     const connect = useCallback(() => {
-        if (isManuallyClosed.current) return;
-
+        // TODO: a good reconnect logic is still due here...
         // Construct URL based on current active chat or "new"
         const SUBDIRECTORY = import.meta.env.VITE_SUBDIRECTORY || '';
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -70,25 +67,13 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         ws.current = socket;
 
         socket.onopen = () => {
+            console.log("ws opened");
             setIsConnected(true);
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = null;
-            }
         };
 
         socket.onclose = (event) => {
             console.log("ws closed", event);
             setIsConnected(false);
-
-            // Only attempt reconnect if not manually closed
-            if (!isManuallyClosed.current) {
-                console.log(`Attempting reconnect in 3000ms...`);
-
-                reconnectTimeoutRef.current = window.setTimeout(() => {
-                    connect();
-                }, 3000);
-            }
         };
 
         socket.onmessage = (event) => {
@@ -174,14 +159,9 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
 
     // Initial connection effect
     useEffect(() => {
-        isManuallyClosed.current = false;
         connect();
 
         return () => {
-            isManuallyClosed.current = true;
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
             if (ws.current) {
                 ws.current.close();
             }
@@ -326,6 +306,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         setMessages([]);
         chatIdRef.current = undefined;
         timestampRef.current = undefined;
+        ws.current?.close();
+        connect();
     }, []);
 
     return {
