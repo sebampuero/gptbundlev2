@@ -1,5 +1,8 @@
+import uuid
 from datetime import datetime
 from unittest.mock import patch
+
+import pytest
 
 from gptbundle.messaging.repository import ChatRepository
 from gptbundle.messaging.schemas import ChatCreate, MessageCreate, MessageRole
@@ -12,7 +15,8 @@ from gptbundle.messaging.service import (
 )
 
 
-def test_create_chat(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_create_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_chat_id"
@@ -31,7 +35,7 @@ def test_create_chat(cleanup_chats: list, es_repo, cleanup_es: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo, es_repo)
+    chat = await create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
     cleanup_es.append(chat.chat_id)
 
@@ -41,7 +45,7 @@ def test_create_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     assert chat.messages[0].content == "Hello"
     assert chat.messages[0].role == MessageRole.ASSISTANT
 
-    db_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    db_chat = await get_chat(chat_id, timestamp, chat_repo, user_email)
     assert db_chat is not None
     assert db_chat.chat_id == chat_id
     assert db_chat.user_email == user_email
@@ -50,7 +54,10 @@ def test_create_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     assert db_chat.messages[0].role == MessageRole.ASSISTANT
 
 
-def test_create_chat_with_no_messages(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_create_chat_with_no_messages(
+    cleanup_chats: list, es_repo, cleanup_es: list
+):
     chat_repo = ChatRepository()
 
     chat_id = "test_chat_id"
@@ -62,7 +69,7 @@ def test_create_chat_with_no_messages(cleanup_chats: list, es_repo, cleanup_es: 
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo, es_repo)
+    chat = await create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
     cleanup_es.append(chat.chat_id)
 
@@ -70,14 +77,15 @@ def test_create_chat_with_no_messages(cleanup_chats: list, es_repo, cleanup_es: 
     assert chat.user_email == user_email
     assert len(chat.messages) == 0
 
-    db_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    db_chat = await get_chat(chat_id, timestamp, chat_repo, user_email)
     assert db_chat is not None
     assert db_chat.chat_id == chat_id
     assert db_chat.user_email == user_email
     assert len(db_chat.messages) == 0
 
 
-def test_get_chat(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_get_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_get_chat_id"
@@ -96,26 +104,28 @@ def test_get_chat(cleanup_chats: list, es_repo, cleanup_es: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo, es_repo)
+    chat = await create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
     cleanup_es.append(chat.chat_id)
 
-    found_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    found_chat = await get_chat(chat_id, timestamp, chat_repo, user_email)
     assert found_chat is not None
     assert found_chat.chat_id == chat_id
 
-    not_found = get_chat("nonexistent_id", timestamp, chat_repo, user_email)
+    not_found = await get_chat("nonexistent_id", timestamp, chat_repo, user_email)
     assert not_found is None
 
 
-def test_get_chats_by_useremail_paginated(
+@pytest.mark.asyncio
+async def test_get_chats_by_useremail_paginated(
     cleanup_chats: list, es_repo, cleanup_es: list
 ):
     chat_repo = ChatRepository()
 
     timestamp = datetime.now().timestamp()
-    user_email_1 = "user1@example.com"
-    user_email_2 = "user2@example.com"
+    unique_suffix = datetime.now().strftime("%Y%m%d%H%M%S")
+    user_email_1 = f"user1_{unique_suffix}@example.com"
+    user_email_2 = f"user2_{unique_suffix}@example.com"
 
     chat_in_1 = ChatCreate(
         chat_id="chat1",
@@ -130,7 +140,7 @@ def test_get_chats_by_useremail_paginated(
             )
         ],
     )
-    create_chat(chat_in_1, chat_repo, es_repo)
+    await create_chat(chat_in_1, chat_repo, es_repo)
     cleanup_chats.append(("chat1", timestamp))
     cleanup_es.append("chat1")
 
@@ -147,7 +157,7 @@ def test_get_chats_by_useremail_paginated(
             )
         ],
     )
-    create_chat(chat_in_2, chat_repo, es_repo)
+    await create_chat(chat_in_2, chat_repo, es_repo)
     cleanup_chats.append(("chat2", timestamp + 1))
     cleanup_es.append("chat2")
 
@@ -164,32 +174,35 @@ def test_get_chats_by_useremail_paginated(
             )
         ],
     )
-    create_chat(chat_in_3, chat_repo, es_repo)
+    await create_chat(chat_in_3, chat_repo, es_repo)
     cleanup_chats.append(("chat3", timestamp))
     cleanup_es.append("chat3")
 
-    user1_response = get_chats_by_user_email_paginated(user_email_1, chat_repo)
+    user1_response = await get_chats_by_user_email_paginated(user_email_1, chat_repo)
     user1_chats = user1_response["items"]
     assert len(user1_chats) == 2
     for chat in user1_chats:
         assert chat.user_email == user_email_1
 
-    user2_response = get_chats_by_user_email_paginated(user_email_2, chat_repo)
+    user2_response = await get_chats_by_user_email_paginated(user_email_2, chat_repo)
     user2_chats = user2_response["items"]
     assert len(user2_chats) == 1
     assert user2_chats[0].user_email == user_email_2
 
-    empty_response = get_chats_by_user_email_paginated(
+    empty_response = await get_chats_by_user_email_paginated(
         "nonexistent@example.com", chat_repo
     )
     assert len(empty_response["items"]) == 0
 
 
-def test_get_chats_paginated_multi_page(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_get_chats_paginated_multi_page(
+    cleanup_chats: list, es_repo, cleanup_es: list
+):
     chat_repo = ChatRepository()
 
     timestamp = datetime.now().timestamp()
-    user_email_1 = "user_multi@example.com"
+    user_email_1 = f"user_multi_{uuid.uuid4().hex[:8]}@example.com"
 
     # Create 5 chats for user 1
     for i in range(5):
@@ -207,17 +220,19 @@ def test_get_chats_paginated_multi_page(cleanup_chats: list, es_repo, cleanup_es
                 )
             ],
         )
-        create_chat(chat_in, chat_repo, es_repo)
+        await create_chat(chat_in, chat_repo, es_repo)
         cleanup_chats.append((chat_id, timestamp + i))
         cleanup_es.append(chat_id)
 
     # Test pagination with limit 2
-    response1 = get_chats_by_user_email_paginated(user_email_1, chat_repo, limit=2)
+    response1 = await get_chats_by_user_email_paginated(
+        user_email_1, chat_repo, limit=2
+    )
     assert len(response1["items"]) == 2
     assert response1["last_eval_key"] is not None
 
     # Test second page
-    response2 = get_chats_by_user_email_paginated(
+    response2 = await get_chats_by_user_email_paginated(
         user_email_1, chat_repo, limit=2, last_evaluated_key=response1["last_eval_key"]
     )
     assert len(response2["items"]) == 2
@@ -229,14 +244,15 @@ def test_get_chats_paginated_multi_page(cleanup_chats: list, es_repo, cleanup_es
     assert chat_ids_1.isdisjoint(chat_ids_2)
 
     # Test third page (last item)
-    response3 = get_chats_by_user_email_paginated(
+    response3 = await get_chats_by_user_email_paginated(
         user_email_1, chat_repo, limit=2, last_evaluated_key=response2["last_eval_key"]
     )
     assert len(response3["items"]) == 1
     assert response3["last_eval_key"] is None
 
 
-def test_append_messages(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_append_messages(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_append_messages_id"
@@ -255,7 +271,7 @@ def test_append_messages(cleanup_chats: list, es_repo, cleanup_es: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    chat = create_chat(chat_in, chat_repo, es_repo)
+    chat = await create_chat(chat_in, chat_repo, es_repo)
     cleanup_chats.append((chat.chat_id, chat.timestamp))
     cleanup_es.append(chat.chat_id)
 
@@ -274,13 +290,14 @@ def test_append_messages(cleanup_chats: list, es_repo, cleanup_es: list):
         ),
     ]
 
-    updated_chat = append_messages(
+    updated_chat = await append_messages(
         chat_id, timestamp, new_messages, chat_repo, user_email, es_repo
     )
     assert updated_chat
 
 
-def test_delete_chat(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_delete_chat(cleanup_chats: list, es_repo, cleanup_es: list):
     chat_repo = ChatRepository()
 
     chat_id = "test_delete_chat_id"
@@ -299,34 +316,39 @@ def test_delete_chat(cleanup_chats: list, es_repo, cleanup_es: list):
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    create_chat(chat_in, chat_repo, es_repo)
+    await create_chat(chat_in, chat_repo, es_repo)
     cleanup_es.append(chat_id)
     # No need to add to cleanup_chats since we're deleting it
 
     # Verify the chat exists
-    found_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    found_chat = await get_chat(chat_id, timestamp, chat_repo, user_email)
     assert found_chat is not None
 
     # Delete the chat
-    deleted = delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
+    deleted = await delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
     assert deleted is True
 
     # Verify the chat no longer exists
-    deleted_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    deleted_chat = await get_chat(chat_id, timestamp, chat_repo, user_email)
     assert deleted_chat is None
 
     # Deleting a non-existent chat should return False
-    deleted_again = delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
+    deleted_again = await delete_chat(
+        chat_id, timestamp, chat_repo, user_email, es_repo
+    )
     assert deleted_again is False
 
     # Deleting with wrong chat_id should return False
-    deleted_wrong_id = delete_chat(
+    deleted_wrong_id = await delete_chat(
         "nonexistent_id", timestamp, chat_repo, user_email, es_repo
     )
     assert deleted_wrong_id is False
 
 
-def test_delete_chat_with_s3_objects(cleanup_chats: list, es_repo, cleanup_es: list):
+@pytest.mark.asyncio
+async def test_delete_chat_with_s3_objects(
+    cleanup_chats: list, es_repo, cleanup_es: list
+):
     chat_repo = ChatRepository()
     chat_id = "test_s3_delete_chat_id"
     timestamp = datetime.now().timestamp()
@@ -347,14 +369,14 @@ def test_delete_chat_with_s3_objects(cleanup_chats: list, es_repo, cleanup_es: l
         chat_id=chat_id, timestamp=timestamp, user_email=user_email, messages=messages
     )
 
-    create_chat(chat_in, chat_repo, es_repo)
+    await create_chat(chat_in, chat_repo, es_repo)
     cleanup_es.append(chat_id)
 
     with patch("gptbundle.messaging.service.delete_objects") as mock_delete_objects:
-        deleted = delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
+        deleted = await delete_chat(chat_id, timestamp, chat_repo, user_email, es_repo)
         assert deleted is True
         mock_delete_objects.assert_called_once_with(s3_keys)
 
     # Verify the chat no longer exists
-    deleted_chat = get_chat(chat_id, timestamp, chat_repo, user_email)
+    deleted_chat = await get_chat(chat_id, timestamp, chat_repo, user_email)
     assert deleted_chat is None

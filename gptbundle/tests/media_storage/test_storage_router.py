@@ -2,7 +2,6 @@ import io
 
 import boto3
 import pytest
-from fastapi.testclient import TestClient
 from moto import mock_aws
 
 from gptbundle.common.config import settings
@@ -25,7 +24,8 @@ def s3_setup(monkeypatch):
         yield s3
 
 
-def test_upload_media_success(client: TestClient, s3_setup):
+@pytest.mark.asyncio
+async def test_upload_media_success(client, s3_setup):
     user_email = "test@example.com"
     token = generate_access_token(user_email)
 
@@ -33,7 +33,7 @@ def test_upload_media_success(client: TestClient, s3_setup):
     file1 = ("test1.jpg", io.BytesIO(b"dummy image 1"), "image/jpeg")
     file2 = ("test2.png", io.BytesIO(b"dummy image 2"), "image/png")
 
-    response = client.post(
+    response = await client.post(
         f"{settings.API_V1_STR}/storage/upload_media",
         files=[("files", file1), ("files", file2)],
         cookies={"access_token": token},
@@ -51,10 +51,11 @@ def test_upload_media_success(client: TestClient, s3_setup):
         assert response_s3["Body"].read() in [b"dummy image 1", b"dummy image 2"]
 
 
-def test_upload_media_unauthenticated(client: TestClient):
+@pytest.mark.asyncio
+async def test_upload_media_unauthenticated(client):
     file1 = ("test1.jpg", io.BytesIO(b"dummy image 1"), "image/jpeg")
 
-    response = client.post(
+    response = await client.post(
         f"{settings.API_V1_STR}/storage/upload_media", files=[("files", file1)]
     )
 

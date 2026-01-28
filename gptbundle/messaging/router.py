@@ -363,7 +363,7 @@ async def websocket_text_generation_endpoint(
             ai_message = MessageCreate(
                 content="", role=MessageRole.ASSISTANT, llm_model=llm_model
             )
-            user_chat = get_chat(
+            user_chat = await get_chat(
                 active_chat_id, active_timestamp, chat_repo, user_email
             )
 
@@ -382,7 +382,7 @@ async def websocket_text_generation_endpoint(
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.ERROR,
-                        content="The LLM had an error, please try again later.",
+                        content="There was an error, please try again later.",
                     ).model_dump()
                 )
                 continue

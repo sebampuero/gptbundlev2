@@ -1,7 +1,6 @@
 import pytest
 import respx
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from httpx import Response
 
 from gptbundle.common.config import settings
@@ -9,14 +8,20 @@ from gptbundle.llm.router import router
 
 
 @pytest.fixture
-def client():
+async def client():
+    from httpx import ASGITransport, AsyncClient
+
     app = FastAPI()
     app.include_router(router)
-    return TestClient(app)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        yield ac
 
 
 @respx.mock
-def test_get_models(client):
+@pytest.mark.asyncio
+async def test_get_models(client):
     mock_response = {
         "data": [
             {
@@ -44,7 +49,7 @@ def test_get_models(client):
         return_value=Response(200, json=mock_response)
     )
 
-    response = client.get("/models")
+    response = await client.get("/models")
     assert response.status_code == 200
     models = response.json()
     assert len(models) == 2

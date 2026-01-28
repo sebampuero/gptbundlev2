@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
 from gptbundle.common.config import settings
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
@@ -23,8 +22,9 @@ def mock_generate_presigned_url():
         yield mock
 
 
-def test_image_generation_returns_presigned_urls(
-    client: TestClient,
+@pytest.mark.asyncio
+async def test_image_generation_returns_presigned_urls(
+    client,
     mock_generate_image_response,
     mock_generate_presigned_url,
     cleanup_chats: list,
@@ -57,7 +57,7 @@ def test_image_generation_returns_presigned_urls(
     chat_timestamp = 1700000000.0
 
     # Call the endpoint
-    response = client.post(
+    response = await client.post(
         f"{settings.API_V1_STR}/messaging/image_generation?chat_id={chat_id}&chat_timestamp={chat_timestamp}",
         json=payload,
         cookies={"access_token": token},
