@@ -100,3 +100,10 @@ Usage:
 ```bash
 admin-cli --help
 ```
+
+## Next TODOs
+
+- Add quota for models that are not free (if possible also for vision, audio, files, etc)
+- Add background tasks (celery or built-in FastAPI) that clean temp S3 folder
+- Add audio and PDF capabilities
+- Improve session management (more robust logic, ability to log off)
