@@ -47,8 +47,10 @@ def get_current_user(
     token: Annotated[str | None, Cookie(alias="access_token")] = None,
 ) -> str | None:
     if not token:
+        logger.debug("No token provided")
         return None
     try:
+        logger.debug(f"Token in request: {token}")
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )

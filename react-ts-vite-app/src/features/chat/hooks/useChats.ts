@@ -9,6 +9,7 @@ export const useChats = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [noMoreChatsToLoad, setNoMoreChatsToLoad] = useState(false);
+    const [moreChatsClicked, setMoreChatsClicked] = useState(false);
     const lastEvalKey = useRef<string | null>(null);
     const paginationLimit = 15;
 
@@ -17,9 +18,11 @@ export const useChats = () => {
         setError(null);
         try {
             console.log("New chat refresh was: ", newChatRefresh);
+            setMoreChatsClicked(true);
             if (newChatRefresh) {
                 lastEvalKey.current = null;
                 setChats([]);
+                setMoreChatsClicked(false);
             }
 
             const response = await apiClient.get<ChatPaginatedResponse>('/messaging/chats', {
@@ -50,6 +53,7 @@ export const useChats = () => {
             return;
         }
         try {
+            setMoreChatsClicked(false);
             const response = await apiClient.get(`/messaging/search_chats?search_term=${searchTerm}`);
             setChats(response.data);
             setNoMoreChatsToLoad(true);
@@ -64,7 +68,7 @@ export const useChats = () => {
     }, [fetchChats]);
 
     useEffect(() => {
-        fetchChats();
+        fetchChats(true);
     }, [fetchChats]);
 
     const deleteChat = async (chatId: string, timestamp: number) => {
@@ -90,5 +94,6 @@ export const useChats = () => {
         refreshChats: fetchChats,
         noMoreChatsToLoad,
         searchChats,
+        moreChatsClicked,
     };
 };

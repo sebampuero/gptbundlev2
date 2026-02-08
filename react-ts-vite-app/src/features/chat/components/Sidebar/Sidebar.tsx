@@ -1,5 +1,6 @@
 import { Box, VStack, Heading, Button, HStack, IconButton, Spinner, Text } from "@chakra-ui/react";
 import { LuChevronDown, LuPanelLeftClose } from "react-icons/lu";
+import { useEffect, useRef } from "react";
 import { SearchField } from "./SearchField";
 import { ChatListItem } from "./ChatListItem";
 import type { Chat } from "../../types";
@@ -16,6 +17,7 @@ interface SidebarProps {
     searchChats: (searchTerm: string) => void;
     onSelectChat: (chatId: string, timestamp: number) => void;
     currentChat: { chatId?: string; timestamp?: string };
+    moreChatsClicked: boolean;
 }
 
 export const Sidebar = ({
@@ -29,8 +31,19 @@ export const Sidebar = ({
     noMoreChatsToLoad,
     searchChats,
     onSelectChat,
-    currentChat
+    currentChat,
+    moreChatsClicked
 }: SidebarProps) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isLoading && moreChatsClicked && scrollRef.current) {
+            scrollRef.current.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: "smooth"
+            });
+        }
+    }, [isLoading, moreChatsClicked, chats]);
 
     return (
         <Box
@@ -55,7 +68,14 @@ export const Sidebar = ({
                 </IconButton>
             </HStack>
             <SearchField onSearch={searchChats} />
-            <VStack align="stretch" gap={0} flex={1} overflowY="auto" mt={4}>
+            <VStack
+                ref={scrollRef}
+                align="stretch"
+                gap={0}
+                flex={1}
+                overflowY="auto"
+                mt={4}
+            >
                 {isLoading && (
                     <Box display="flex" justifyContent="center" py={4}>
                         <Spinner size="sm" />

@@ -36,7 +36,8 @@ export const ChatPage = () => {
         deleteChat,
         refreshChats,
         noMoreChatsToLoad,
-        searchChats
+        searchChats,
+        moreChatsClicked,
     } = useChats();
 
     const handleStartNewChat = () => {
@@ -94,6 +95,7 @@ export const ChatPage = () => {
                         searchChats={searchChats}
                         onSelectChat={handleSelectChat}
                         currentChat={currentChat}
+                        moreChatsClicked={moreChatsClicked}
                     />
                 </Box>
 
