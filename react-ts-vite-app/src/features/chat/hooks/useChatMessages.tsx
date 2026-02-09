@@ -74,6 +74,10 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         socket.onclose = (event) => {
             console.log("ws closed", event);
             setIsConnected(false);
+            console.log("Trying to connect again.")
+            setTimeout(() => {
+                connect();
+            }, 1000);
         };
 
         socket.onmessage = (event) => {
@@ -151,7 +155,6 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             fetchHistory(chatMetadata.chatId, chatMetadata.timestamp);
             // and also start a fresh ws connection
             ws.current?.close();
-            connect();
         } else {
             // New chat mode
             chatIdRef.current = undefined;
@@ -310,7 +313,6 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         chatIdRef.current = undefined;
         timestampRef.current = undefined;
         ws.current?.close();
-        connect();
     }, []);
 
     return {
