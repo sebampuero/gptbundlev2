@@ -1,6 +1,6 @@
 # GPTBundle V2
 
-This is "almost" a complete rewrite of the first version of the [GPTBundle](https://github.com/sebampuero/simple_chatgpt_4). This version is a full-stack chat application designed to interface with various Large Language Models (LLMs). This project provides a React-based frontend (vibe-coded to 80%) and a FastAPI backend (vibe-coded to 40-50%).
+This is "almost" a complete rewrite of the first version of the [GPTBundle](https://github.com/sebampuero/simple_chatgpt_4). This version is a full-stack chat application designed to interface with various Large Language Models (LLMs). This project provides a React-based frontend (vibe-coded to 80%) and a FastAPI backend (vibe-coded to 10-20%).
 
 This was a fun project to see how vibe-coding works and how important it is **not** to 100% rely on AI completely. Several changes needed to be checked and tested before letting the AI generate the final code.
 
