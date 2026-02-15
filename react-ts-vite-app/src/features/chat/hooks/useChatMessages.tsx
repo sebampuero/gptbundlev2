@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { apiClient } from "../../../api/client";
 import { useModel } from "../../../context/ModelContext";
 import { useLLModels } from "../hooks/useLLModels";
+import { useNavigate } from "react-router-dom";
 
 export type MessageRole = "user" | "assistant";
 
@@ -40,6 +41,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
     const currentMediaS3Keys = useRef<string[]>([]);
+    const navigate = useNavigate();
 
     // Model context to handle capabilities changes
     const { selectedModel } = useModel();
@@ -149,6 +151,11 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     // Effect to handle chat switching via props
     useEffect(() => {
         if (chatMetadata.chatId && chatMetadata.timestamp) {
+            // Check if we are already on this chat (e.g. just created it locally)
+            if (chatIdRef.current === chatMetadata.chatId && timestampRef.current === chatMetadata.timestamp) {
+                return;
+            }
+
             // Switch to existing chat
             chatIdRef.current = chatMetadata.chatId;
             timestampRef.current = chatMetadata.timestamp;
@@ -157,9 +164,11 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             ws.current?.close();
         } else {
             // New chat mode
-            chatIdRef.current = undefined;
-            timestampRef.current = undefined;
-            setMessages([]);
+            if (chatIdRef.current !== undefined || timestampRef.current !== undefined) {
+                chatIdRef.current = undefined;
+                timestampRef.current = undefined;
+                setMessages([]);
+            }
         }
     }, [chatMetadata, fetchHistory]);
 
@@ -208,6 +217,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         if (!chatIdRef.current || !timestampRef.current) {
             chatIdRef.current = crypto.randomUUID();
             timestampRef.current = (Date.now() / 1000).toString();
+            navigate(`/chat/${chatIdRef.current}/${timestampRef.current}`, { replace: true });
         }
     };
 

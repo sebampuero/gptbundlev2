@@ -7,6 +7,8 @@ import { useChatMessages } from "../features/chat/hooks/useChatMessages";
 import { useChats } from "../features/chat/hooks/useChats";
 import { useModel } from "../context/ModelContext";
 import { useAuth } from "../context/AuthContext";
+import { useParams } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 import { ImagePreviewProvider } from "../context/ImagePreviewContext";
 
@@ -15,8 +17,8 @@ export const ChatPage = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const { selectedModel } = useModel();
     const { user } = useAuth();
-
-    const [currentChat, setCurrentChat] = useState<{ chatId?: string; timestamp?: string }>({});
+    const { chatId, timestamp } = useParams();
+    const navigate = useNavigate();
 
     const {
         messages,
@@ -28,7 +30,8 @@ export const ChatPage = () => {
         removeMediaKey,
         isOutputVisionSelected,
         setIsOutputVisionSelected
-    } = useChatMessages(currentChat);
+    } = useChatMessages({ chatId, timestamp });
+
     const {
         chats,
         isLoading,
@@ -41,13 +44,13 @@ export const ChatPage = () => {
     } = useChats();
 
     const handleStartNewChat = () => {
-        setCurrentChat({});
         startNewChat();
         refreshChats(true);
+        navigate(`/chat`, { replace: true });
     };
 
     const handleSelectChat = (chatId: string, timestamp: number) => {
-        setCurrentChat({ chatId, timestamp: timestamp.toString() });
+        navigate(`/chat/${chatId}/${timestamp}`, { replace: true });
     };
 
     useEffect(() => {
@@ -94,7 +97,7 @@ export const ChatPage = () => {
                         noMoreChatsToLoad={noMoreChatsToLoad}
                         searchChats={searchChats}
                         onSelectChat={handleSelectChat}
-                        currentChat={currentChat}
+                        currentChat={{ chatId, timestamp }}
                         moreChatsClicked={moreChatsClicked}
                     />
                 </Box>
