@@ -135,10 +135,14 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         // But for now, let's always fetch to be safe/simple
         setIsProcessingMessage(true); // Optional: show loading state
         try {
+
             const response = await apiClient.get(`/messaging/chat/${id}/${timestamp}`);
+
             const data = response.data;
             if (data && data.messages) {
+
                 setMessages(data.messages);
+
             }
         } catch (error) {
             console.error("Error fetching chat history:", error);
@@ -164,13 +168,15 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             ws.current?.close();
         } else {
             // New chat mode
-            if (chatIdRef.current !== undefined || timestampRef.current !== undefined) {
+            // Ensure we are in "new chat" state
+            // prevent infinite loop by checking if we need to update
+            if (chatIdRef.current !== undefined || timestampRef.current !== undefined || messages.length > 0) {
                 chatIdRef.current = undefined;
                 timestampRef.current = undefined;
                 setMessages([]);
             }
         }
-    }, [chatMetadata, fetchHistory]);
+    }, [chatMetadata.chatId, chatMetadata.timestamp, fetchHistory]);
 
     // Initial connection effect
     useEffect(() => {
