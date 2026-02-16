@@ -58,8 +58,6 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     }, [selectedModel, models, isOutputVisionSelected]);
 
     const connect = useCallback(() => {
-        // TODO: a good reconnect logic is still due here...
-        // Construct URL based on current active chat or "new"
         const SUBDIRECTORY = import.meta.env.VITE_SUBDIRECTORY || '';
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = import.meta.env.DEV ? 'localhost:8000' : window.location.host;
@@ -77,6 +75,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             console.log("ws closed", event);
             setIsConnected(false);
             console.log("Trying to connect again.")
+            // TODO: while reconnecting, we need to try to fetch the access token from the server
             setTimeout(() => {
                 connect();
             }, 1000);
