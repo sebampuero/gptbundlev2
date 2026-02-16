@@ -147,6 +147,9 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         } catch (error) {
             console.error("Error fetching chat history:", error);
             setMessages([]);
+            navigate(`/chat`, { replace: true });
+            chatIdRef.current = undefined;
+            timestampRef.current = undefined;
         } finally {
             setIsProcessingMessage(false);
         }
