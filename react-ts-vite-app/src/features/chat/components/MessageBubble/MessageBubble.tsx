@@ -46,6 +46,7 @@ export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isL
             maxW="80%"
             position="relative"
             role="group"
+            wordBreak="break-word"
         >
             {!isLoading && (
                 <Box
