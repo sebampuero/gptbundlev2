@@ -125,10 +125,10 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                         if (lastMessage && lastMessage.role === "assistant") {
                             return [
                                 ...prev.slice(0, -1),
-                                { ...lastMessage, content: data.content }
+                                { ...lastMessage, content: data.content || "" }
                             ];
                         }
-                        return [...prev, { role: "assistant", content: data.content }];
+                        return [...prev, { role: "assistant", content: data.content || "" }];
                     });
                     setIsProcessingMessage(false);
                     break;
