@@ -23,6 +23,7 @@ class MessageCreate(BaseModel):
     # this contains the presigned URLs returned using fetch chats
     presigned_urls: list[str] | None = None
     llm_model: str
+    reasoning_effort: str | None = None
 
 
 class ChatBase(BaseModel):

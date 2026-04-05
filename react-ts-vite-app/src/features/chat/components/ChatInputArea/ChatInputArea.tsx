@@ -9,7 +9,7 @@ import {
     CloseButton,
 } from "@chakra-ui/react";
 import { useState, useCallback, useMemo } from "react";
-import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera } from "react-icons/lu";
+import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useLLModels } from "../../hooks/useLLModels";
@@ -20,13 +20,15 @@ import { toaster } from "../../../../components/ui/toaster";
 interface ChatInputAreaProps {
     onShowSidebar: () => void;
     isSidebarOpen: boolean;
-    onSendMessage: (content: string, presignedUrls?: string[]) => void;
+    onSendMessage: (content: string, presignedUrls?: string[], isReasoningSelected?: boolean) => void;
     onStartNewChat: () => void;
     uploadImages: (files: File[]) => Promise<string[]>;
     removeMediaKey: (key: string) => void;
     isWebsocketConnected: boolean;
     isOutputVisionSelected: boolean;
     setIsOutputVisionSelected: (selected: boolean) => void;
+    isReasoningSelected: boolean;
+    setIsReasoningSelected: (selected: boolean) => void;
 }
 
 interface PastedImage {
@@ -45,7 +47,9 @@ export const ChatInputArea = ({
     removeMediaKey,
     isWebsocketConnected,
     isOutputVisionSelected,
-    setIsOutputVisionSelected
+    setIsOutputVisionSelected,
+    isReasoningSelected,
+    setIsReasoningSelected
 }: ChatInputAreaProps) => {
 
     const { open, onOpen, onClose } = useDisclosure();
@@ -62,6 +66,7 @@ export const ChatInputArea = ({
 
     const supportsInputVision = currentModel?.supports_input_vision ?? false;
     const supportsOutputVision = currentModel?.supports_output_vision ?? false;
+    const supportsReasoning = currentModel?.supports_reasoning ?? false;
 
     const handleSend = () => {
         // Prevent sending if images are present but model doesn't support vision
@@ -84,7 +89,7 @@ export const ChatInputArea = ({
             }
 
             const presignedUrls = pastedImages.map(img => img.url);
-            onSendMessage(inputValue, presignedUrls);
+            onSendMessage(inputValue, presignedUrls, isReasoningSelected);
             setInputValue("");
             setPastedImages([]);
         }
@@ -168,6 +173,10 @@ export const ChatInputArea = ({
 
     const triggerOutputVision = () => {
         setIsOutputVisionSelected(!isOutputVisionSelected);
+    };
+
+    const triggerReasoning = () => {
+        setIsReasoningSelected(!isReasoningSelected);
     };
 
     const removeImage = (index: number) => {
@@ -260,6 +269,16 @@ export const ChatInputArea = ({
                     disabled={!supportsOutputVision}
                 >
                     <LuCamera />
+                </IconButton>
+                <IconButton
+                    aria-label="Activate reasoning"
+                    variant={isReasoningSelected ? "solid" : "ghost"}
+                    colorPalette={isReasoningSelected ? "blue" : "gray"}
+                    size="sm"
+                    onClick={triggerReasoning}
+                    disabled={!supportsReasoning}
+                >
+                    <LuBrain />
                 </IconButton>
                 <IconButton
                     aria-label="Upload images"

@@ -27,3 +27,4 @@ class LLMModel(BaseModel):
     description: str
     supports_input_vision: bool
     supports_output_vision: bool
+    supports_reasoning: bool

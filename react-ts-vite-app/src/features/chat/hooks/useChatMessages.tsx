@@ -14,6 +14,7 @@ export interface Message {
     is_loading_message?: boolean;
     media_s3_keys?: string[];
     presigned_urls?: string[];
+    reasoning_effort?: string | null;
 }
 
 export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
@@ -37,7 +38,9 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const [isConnected, setIsConnected] = useState(false);
     const [isProcessingMessage, setIsProcessingMessage] = useState(false);
     const [isOutputVisionSelected, setIsOutputVisionSelectedState] = useState(false);
+    const [isReasoningSelected, setIsReasoningSelectedState] = useState(false);
     const isOutputVisionSelectedRef = useRef(false);
+    const isReasoningSelectedRef = useRef(false);
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
     const currentMediaS3Keys = useRef<string[]>([]);
@@ -48,14 +51,18 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const { models } = useLLModels();
 
 
-    // Reset output vision if the selected model doesn't support it
+    // Reset output vision/reasoning if the selected model doesn't support it
     useEffect(() => {
         const currentModel = models.find(m => m.model_name === selectedModel);
         if (currentModel && !currentModel.supports_output_vision && isOutputVisionSelected) {
             setIsOutputVisionSelectedState(false);
             isOutputVisionSelectedRef.current = false;
         }
-    }, [selectedModel, models, isOutputVisionSelected]);
+        if (currentModel && !currentModel.supports_reasoning && isReasoningSelected) {
+            setIsReasoningSelectedState(false);
+            isReasoningSelectedRef.current = false;
+        }
+    }, [selectedModel, models, isOutputVisionSelected, isReasoningSelected]);
 
     const connect = useCallback(() => {
         const SUBDIRECTORY = import.meta.env.VITE_SUBDIRECTORY || '';
@@ -118,10 +125,10 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                         if (lastMessage && lastMessage.role === "assistant") {
                             return [
                                 ...prev.slice(0, -1),
-                                { ...lastMessage, content: "The model had an error generating a response, please try another model or try later." }
+                                { ...lastMessage, content: data.content }
                             ];
                         }
-                        return [...prev, { role: "assistant", content: "The model had an error generating a response, please try another model or try later." }];
+                        return [...prev, { role: "assistant", content: data.content }];
                     });
                     setIsProcessingMessage(false);
                     break;
@@ -221,6 +228,11 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         isOutputVisionSelectedRef.current = selected;
     }, []);
 
+    const setIsReasoningSelected = useCallback((selected: boolean) => {
+        setIsReasoningSelectedState(selected);
+        isReasoningSelectedRef.current = selected;
+    }, []);
+
     const initializeChatMetadata = () => {
         if (!chatIdRef.current || !timestampRef.current) {
             chatIdRef.current = crypto.randomUUID();
@@ -247,7 +259,6 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 return prev;
             });
             const message = response.data;
-            console.log("The assistant message with image is: ", message);
             setMessages((prev) => [...prev, { ...message, is_loading_message: false }]);
         } catch (error) {
             console.error("Error generating image:", error);
@@ -260,14 +271,14 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             });
             setMessages((prev) => [...prev, {
                 role: "assistant",
-                content: "The model had an error generating a response, please try another model or try later.",
+                content: "The model had an error generating an image, please try another model or try later.",
                 is_loading_message: false
             }]);
             throw error;
         }
     }, []);
 
-    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
+    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[], isReasoningSelected?: boolean) => {
         if (!userEmail) {
             console.error("No user email provided");
             return;
@@ -298,6 +309,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 message_type: "text",
                 presigned_urls: presigned_urls, // Store optimistic URLs
                 media_s3_keys: currentMediaS3Keys.current, // Store S3 keys if any
+                reasoning_effort: isReasoningSelected ? "medium" : undefined,
             };
 
             // Optimistically add user message to UI
@@ -342,6 +354,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         uploadImages,
         removeMediaKey,
         isOutputVisionSelected,
-        setIsOutputVisionSelected
+        setIsOutputVisionSelected,
+        isReasoningSelected,
+        setIsReasoningSelected
     };
 }

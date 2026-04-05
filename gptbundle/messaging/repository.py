@@ -131,6 +131,7 @@ class ChatRepository:
                     message_type=msg.message_type,
                     media_s3_keys=msg.media_s3_keys,
                     llm_model=msg.llm_model,
+                    reasoning_effort=msg.reasoning_effort,
                 )
                 for msg in chat_model.messages
             ],

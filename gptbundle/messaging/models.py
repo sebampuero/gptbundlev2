@@ -28,6 +28,7 @@ class MessageItem(MapAttribute):
     media_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
     presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
     llm_model = UnicodeAttribute()
+    reasoning_effort = UnicodeAttribute(null=True)
 
 
 class Chat(Model):

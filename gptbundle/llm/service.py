@@ -4,8 +4,10 @@ import logging
 import uuid
 from collections.abc import AsyncGenerator
 
+import litellm
 from litellm import acompletion
 
+from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.media_storage.storage import generate_presigned_url, upload_file
 from gptbundle.messaging.schemas import Chat as MessagingChat
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
@@ -15,11 +17,24 @@ from .chat_factory import convert_chat_to_model
 logger = logging.getLogger(__name__)
 
 
-async def generate_text_response(chat: MessagingChat) -> AsyncGenerator[str, None]:
-    chat = convert_chat_to_model(chat)
+async def generate_text_response(
+    input_chat: MessagingChat,
+) -> AsyncGenerator[str, None]:
+    chat = convert_chat_to_model(input_chat)
+    reasoning_effort = input_chat.messages[-1].reasoning_effort
+    logger.debug(
+        f"Using reasoning effort: {reasoning_effort} for chat: {input_chat.chat_id}"
+    )
     llm_model = chat.messages[-1].llm_model
+    if not litellm.supports_reasoning(model=llm_model):
+        raise ModelDoesNotSupportReasoningEffortError(
+            f"Model {llm_model} does not support reasoning effort"
+        )
     return await acompletion(
-        model=llm_model, messages=[m.model_dump() for m in chat.messages], stream=True
+        model=llm_model,
+        messages=[m.model_dump() for m in chat.messages],
+        stream=True,
+        reasoning_effort=reasoning_effort,
     )
 
 

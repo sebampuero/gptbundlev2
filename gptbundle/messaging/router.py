@@ -6,6 +6,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.llm.service import generate_image_response, generate_text_response
 from gptbundle.media_storage.storage import move_file
 from gptbundle.security.service import get_current_user
@@ -282,11 +283,9 @@ async def websocket_text_generation_endpoint(
                     ).model_dump()
                 )
                 continue
-
             user_message = MessageCreate.model_validate(data["user_message"])
             active_chat_id = data.get("chat_id")
             active_timestamp_raw = data.get("timestamp")
-
             try:
                 active_timestamp = (
                     float(active_timestamp_raw)
@@ -317,13 +316,13 @@ async def websocket_text_generation_endpoint(
                 ]
 
             try:
-                logger.debug(f"Creating new chat for user: {user_email}")
                 chat_in = ChatCreate(
                     user_email=user_email,
                     messages=[user_message],
                     chat_id=active_chat_id,
                     timestamp=active_timestamp,
                 )
+                logger.debug(f"Creating new chat for user: {user_email}")
                 await create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
                 logger.debug(
                     f"Created new chat for user: {user_email} "
@@ -377,6 +376,15 @@ async def websocket_text_generation_endpoint(
                                 type=WebSocketMessageType.TOKEN, content=token
                             ).model_dump()
                         )
+            except ModelDoesNotSupportReasoningEffortError as e:
+                logger.error(f"Error during LLM generation: {e}")
+                await websocket.send_json(
+                    WebSocketMessage(
+                        type=WebSocketMessageType.ERROR,
+                        content="The model does not support reasoning effort. "
+                        "Please try with another model.",
+                    ).model_dump()
+                )
             except Exception as e:
                 logger.error(f"Error during LLM generation: {e}")
                 await websocket.send_json(
@@ -407,8 +415,6 @@ async def websocket_text_generation_endpoint(
                 )
             except Exception as e:
                 logger.error(f"Error persisting AI message: {e}")
-                # We don't send an ERROR message here because tokens were already sent
-                # but we should signal finish if possible or just log it
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.STREAM_FINISHED

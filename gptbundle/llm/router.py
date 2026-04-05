@@ -43,6 +43,8 @@ async def get_models():
                 description=model_data.get("description", ""),
                 supports_input_vision=supports_input_vision,
                 supports_output_vision=supports_output_vision,
+                supports_reasoning="reasoning"
+                in model_data.get("supported_parameters", []),
             )
         )
     return models

@@ -6,6 +6,7 @@ export interface Message {
     llm_model?: string;
     message_type?: string;
     media?: string | null;
+    reasoning_effort?: string | null;
 }
 
 export interface Chat {
@@ -25,4 +26,5 @@ export interface LLMModel {
     description: string;
     supports_input_vision: boolean;
     supports_output_vision: boolean;
+    supports_reasoning: boolean;
 }
