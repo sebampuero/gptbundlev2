@@ -9,7 +9,7 @@ import {
     CloseButton,
 } from "@chakra-ui/react";
 import { useState, useCallback, useMemo } from "react";
-import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain } from "react-icons/lu";
+import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain, LuMenu } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useLLModels } from "../../hooks/useLLModels";
@@ -54,6 +54,7 @@ export const ChatInputArea = ({
 
     const { open, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState("");
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [pastedImages, setPastedImages] = useState<PastedImage[]>([]);
     const { models } = useLLModels();
     const { selectedModel } = useModel();
@@ -187,6 +188,48 @@ export const ChatInputArea = ({
         setPastedImages(prev => prev.filter((_, i) => i !== index));
     };
 
+    const actionButtons = (
+        <>
+            <IconButton
+                aria-label="Ask for image"
+                variant={isOutputVisionSelected ? "solid" : "ghost"}
+                colorPalette={isOutputVisionSelected ? "blue" : "gray"}
+                size="sm"
+                onClick={triggerOutputVision}
+                disabled={!supportsOutputVision}
+            >
+                <LuCamera />
+            </IconButton>
+            <IconButton
+                aria-label="Activate reasoning"
+                variant={isReasoningSelected ? "solid" : "ghost"}
+                colorPalette={isReasoningSelected ? "blue" : "gray"}
+                size="sm"
+                onClick={triggerReasoning}
+                disabled={!supportsReasoning}
+            >
+                <LuBrain />
+            </IconButton>
+            <IconButton
+                aria-label="Upload images"
+                variant="ghost"
+                size="sm"
+                onClick={triggerFileInput}
+                disabled={pastedImages.length >= 3 || !supportsInputVision}
+            >
+                <LuImage />
+            </IconButton>
+            <IconButton
+                aria-label="Options"
+                variant="ghost"
+                size="sm"
+                onClick={onOpen}
+            >
+                <LuPlus />
+            </IconButton>
+        </>
+    );
+
     return (
         <Box p={4} position="absolute" bottom="0" width="full" bg="#f2ece4">
             {/* Image Preview Area */}
@@ -260,43 +303,39 @@ export const ChatInputArea = ({
                     ref={fileInputRef}
                     onChange={onFileChange}
                 />
-                <IconButton
-                    aria-label="Ask for image"
-                    variant={isOutputVisionSelected ? "solid" : "ghost"}
-                    colorPalette={isOutputVisionSelected ? "blue" : "gray"}
-                    size="sm"
-                    onClick={triggerOutputVision}
-                    disabled={!supportsOutputVision}
-                >
-                    <LuCamera />
-                </IconButton>
-                <IconButton
-                    aria-label="Activate reasoning"
-                    variant={isReasoningSelected ? "solid" : "ghost"}
-                    colorPalette={isReasoningSelected ? "blue" : "gray"}
-                    size="sm"
-                    onClick={triggerReasoning}
-                    disabled={!supportsReasoning}
-                >
-                    <LuBrain />
-                </IconButton>
-                <IconButton
-                    aria-label="Upload images"
-                    variant="ghost"
-                    size="sm"
-                    onClick={triggerFileInput}
-                    disabled={pastedImages.length >= 3 || !supportsInputVision}
-                >
-                    <LuImage />
-                </IconButton>
-                <IconButton
-                    aria-label="Options"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onOpen}
-                >
-                    <LuPlus />
-                </IconButton>
+                <HStack gap={2} display={{ base: "none", md: "flex" }}>
+                    {actionButtons}
+                </HStack>
+
+                <Box display={{ base: "block", md: "none" }} position="relative">
+                    <IconButton
+                        aria-label="More options"
+                        variant={isMobileMenuOpen ? "solid" : "ghost"}
+                        size="sm"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        <LuMenu />
+                    </IconButton>
+
+                    {isMobileMenuOpen && (
+                        <Box
+                            position="absolute"
+                            bottom="calc(100% + 10px)"
+                            right="0"
+                            bg="white"
+                            p={2}
+                            borderRadius="md"
+                            boxShadow="md"
+                            border="1px solid"
+                            borderColor="gray.200"
+                            zIndex={10}
+                        >
+                            <HStack gap={2}>
+                                {actionButtons}
+                            </HStack>
+                        </Box>
+                    )}
+                </Box>
                 <IconButton
                     aria-label="Send message"
                     bg="green.500"
