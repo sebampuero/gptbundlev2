@@ -12,6 +12,7 @@ services:
   web:
     build: .
     container_name: gptbundle
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
@@ -40,7 +41,7 @@ services:
   db:
     image: postgres:18-alpine
     container_name: gptbundle_db
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
