@@ -31,7 +31,8 @@ export const ChatPage = () => {
         isOutputVisionSelected,
         setIsOutputVisionSelected,
         isReasoningSelected,
-        setIsReasoningSelected
+        reasoningEffort,
+        setReasoningEffort
     } = useChatMessages({ chatId, timestamp });
 
     const {
@@ -122,8 +123,8 @@ export const ChatPage = () => {
                     <ChatInputArea
                         onShowSidebar={toggleSidebar}
                         isSidebarOpen={isSidebarOpen}
-                        onSendMessage={(content, presignedUrls, reasoningSelected) => 
-                            sendMessage(content, user?.email || "", selectedModel, presignedUrls, reasoningSelected)}
+                        onSendMessage={(content, presignedUrls) => 
+                            sendMessage(content, user?.email || "", selectedModel, presignedUrls)}
                         onStartNewChat={handleStartNewChat}
                         uploadImages={uploadImages}
                         removeMediaKey={removeMediaKey}
@@ -131,7 +132,8 @@ export const ChatPage = () => {
                         isOutputVisionSelected={isOutputVisionSelected}
                         setIsOutputVisionSelected={setIsOutputVisionSelected}
                         isReasoningSelected={isReasoningSelected}
-                        setIsReasoningSelected={setIsReasoningSelected}
+                        reasoningEffort={reasoningEffort}
+                        setReasoningEffort={setReasoningEffort}
                     />
                 </Box>
             </Flex>

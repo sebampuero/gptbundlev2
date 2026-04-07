@@ -17,6 +17,8 @@ export interface Message {
     reasoning_effort?: string | null;
 }
 
+export type ReasoningEffort = "low" | "medium" | "high" | "disabled";
+
 export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
 
 export interface WebSocketMessage {
@@ -39,8 +41,10 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const [isProcessingMessage, setIsProcessingMessage] = useState(false);
     const [isOutputVisionSelected, setIsOutputVisionSelectedState] = useState(false);
     const [isReasoningSelected, setIsReasoningSelectedState] = useState(false);
+    const [reasoningEffort, setReasoningEffortState] = useState<ReasoningEffort>("disabled");
     const isOutputVisionSelectedRef = useRef(false);
     const isReasoningSelectedRef = useRef(false);
+    const reasoningEffortRef = useRef<ReasoningEffort>("disabled");
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
     const currentMediaS3Keys = useRef<string[]>([]);
@@ -61,6 +65,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         if (currentModel && !currentModel.supports_reasoning && isReasoningSelected) {
             setIsReasoningSelectedState(false);
             isReasoningSelectedRef.current = false;
+            setReasoningEffortState("disabled");
+            reasoningEffortRef.current = "disabled";
         }
     }, [selectedModel, models, isOutputVisionSelected, isReasoningSelected]);
 
@@ -233,6 +239,14 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         isReasoningSelectedRef.current = selected;
     }, []);
 
+    const setReasoningEffort = useCallback((effort: ReasoningEffort) => {
+        setReasoningEffortState(effort);
+        reasoningEffortRef.current = effort;
+        const isSelected = effort !== "disabled";
+        setIsReasoningSelectedState(isSelected);
+        isReasoningSelectedRef.current = isSelected;
+    }, []);
+
     const initializeChatMetadata = () => {
         if (!chatIdRef.current || !timestampRef.current) {
             chatIdRef.current = crypto.randomUUID();
@@ -278,7 +292,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         }
     }, []);
 
-    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[], isReasoningSelected?: boolean) => {
+    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
         if (!userEmail) {
             console.error("No user email provided");
             return;
@@ -309,7 +323,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 message_type: "text",
                 presigned_urls: presigned_urls, // Store optimistic URLs
                 media_s3_keys: currentMediaS3Keys.current, // Store S3 keys if any
-                reasoning_effort: isReasoningSelected ? "medium" : undefined,
+                reasoning_effort: reasoningEffortRef.current !== "disabled" ? reasoningEffortRef.current : undefined,
             };
 
             // Optimistically add user message to UI
@@ -356,6 +370,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         isOutputVisionSelected,
         setIsOutputVisionSelected,
         isReasoningSelected,
-        setIsReasoningSelected
+        setIsReasoningSelected,
+        reasoningEffort,
+        setReasoningEffort
     };
 }

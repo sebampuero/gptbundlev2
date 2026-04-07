@@ -26,7 +26,7 @@ async def generate_text_response(
         f"Using reasoning effort: {reasoning_effort} for chat: {input_chat.chat_id}"
     )
     llm_model = chat.messages[-1].llm_model
-    if not litellm.supports_reasoning(model=llm_model):
+    if reasoning_effort and not litellm.supports_reasoning(model=llm_model):
         raise ModelDoesNotSupportReasoningEffortError(
             f"Model {llm_model} does not support reasoning effort"
         )

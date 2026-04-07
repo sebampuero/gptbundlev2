@@ -7,13 +7,19 @@ import {
     Image,
     Spinner,
     CloseButton,
+    MenuRoot,
+    MenuTrigger,
+    MenuContent,
+    MenuItem,
 } from "@chakra-ui/react";
 import { useState, useCallback, useMemo } from "react";
 import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain, LuMenu } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useLLModels } from "../../hooks/useLLModels";
+import type { ReasoningEffort } from "../../hooks/useChatMessages";
 import { useModel } from "../../../../context/ModelContext";
+import { Check } from "lucide-react";
 import { useRef } from "react";
 import { toaster } from "../../../../components/ui/toaster";
 
@@ -28,7 +34,8 @@ interface ChatInputAreaProps {
     isOutputVisionSelected: boolean;
     setIsOutputVisionSelected: (selected: boolean) => void;
     isReasoningSelected: boolean;
-    setIsReasoningSelected: (selected: boolean) => void;
+    reasoningEffort: ReasoningEffort;
+    setReasoningEffort: (effort: ReasoningEffort) => void;
 }
 
 interface PastedImage {
@@ -49,7 +56,8 @@ export const ChatInputArea = ({
     isOutputVisionSelected,
     setIsOutputVisionSelected,
     isReasoningSelected,
-    setIsReasoningSelected
+    reasoningEffort,
+    setReasoningEffort
 }: ChatInputAreaProps) => {
 
     const { open, onOpen, onClose } = useDisclosure();
@@ -90,7 +98,7 @@ export const ChatInputArea = ({
             }
 
             const presignedUrls = pastedImages.map(img => img.url);
-            onSendMessage(inputValue, presignedUrls, isReasoningSelected);
+            onSendMessage(inputValue, presignedUrls);
             setInputValue("");
             setPastedImages([]);
         }
@@ -176,10 +184,6 @@ export const ChatInputArea = ({
         setIsOutputVisionSelected(!isOutputVisionSelected);
     };
 
-    const triggerReasoning = () => {
-        setIsReasoningSelected(!isReasoningSelected);
-    };
-
     const removeImage = (index: number) => {
         const image = pastedImages[index];
         if (image.key) {
@@ -200,16 +204,45 @@ export const ChatInputArea = ({
             >
                 <LuCamera />
             </IconButton>
-            <IconButton
-                aria-label="Activate reasoning"
-                variant={isReasoningSelected ? "solid" : "ghost"}
-                colorPalette={isReasoningSelected ? "blue" : "gray"}
-                size="sm"
-                onClick={triggerReasoning}
-                disabled={!supportsReasoning}
-            >
-                <LuBrain />
-            </IconButton>
+            <MenuRoot>
+                <MenuTrigger asChild>
+                    <IconButton
+                        aria-label="Activate reasoning"
+                        variant={isReasoningSelected ? "solid" : "ghost"}
+                        colorPalette={isReasoningSelected ? "blue" : "gray"}
+                        size="sm"
+                        disabled={!supportsReasoning}
+                    >
+                        <LuBrain />
+                    </IconButton>
+                </MenuTrigger>
+                <MenuContent>
+                    <MenuItem value="disabled" onClick={() => setReasoningEffort("disabled")}>
+                        <HStack justify="space-between" width="full">
+                            Disabled
+                            {reasoningEffort === "disabled" && <Check size={14} />}
+                        </HStack>
+                    </MenuItem>
+                    <MenuItem value="low" onClick={() => setReasoningEffort("low")}>
+                        <HStack justify="space-between" width="full">
+                            Low effort
+                            {reasoningEffort === "low" && <Check size={14} />}
+                        </HStack>
+                    </MenuItem>
+                    <MenuItem value="medium" onClick={() => setReasoningEffort("medium")}>
+                        <HStack justify="space-between" width="full">
+                            Medium effort
+                            {reasoningEffort === "medium" && <Check size={14} />}
+                        </HStack>
+                    </MenuItem>
+                    <MenuItem value="high" onClick={() => setReasoningEffort("high")}>
+                        <HStack justify="space-between" width="full">
+                            High effort
+                            {reasoningEffort === "high" && <Check size={14} />}
+                        </HStack>
+                    </MenuItem>
+                </MenuContent>
+            </MenuRoot>
             <IconButton
                 aria-label="Upload images"
                 variant="ghost"
