@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
@@ -18,8 +16,8 @@ class ChatMessageHistoryWrapper(BaseChatMessageHistory):
     def messages(self) -> list[BaseMessage]:
         return self.message_history.messages
 
-    def add_messages(self, messages: Sequence[BaseMessage]) -> None:
-        self.message_history.add_messages(messages)
+    def add_message(self, message: BaseMessage) -> None:
+        self.message_history.add_message(message)
 
     def clear(self) -> None:
         self.message_history.clear()

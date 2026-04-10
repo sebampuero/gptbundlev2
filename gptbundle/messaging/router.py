@@ -6,6 +6,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from gptbundle.llm.chat_factory import msg_schema_to_lc_base_message
+from gptbundle.llm.chat_message_history_wrapper import ChatMessageHistoryWrapper
 from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.llm.service import generate_image_response, generate_text_response
 from gptbundle.media_storage.storage import move_file
@@ -373,9 +375,19 @@ async def websocket_text_generation_endpoint(
                 content="", role=MessageRole.ASSISTANT, llm_model=llm_model
             )
 
-            # TODO: fetch chat with id, ts, and user_email
-            # and if it exists, populate the message history
-            # with the ChatMessageHistoryWrapper
+            chat = await get_chat(
+                chat_id=active_chat_id,
+                timestamp=active_timestamp,
+                chat_repo=chat_repo,
+                user_email=user_email,
+            )
+
+            if chat:
+                history_wrapper = ChatMessageHistoryWrapper(session_id=active_chat_id)
+                history_wrapper.clear()
+                lc_messages = [msg_schema_to_lc_base_message(m) for m in chat.messages]
+                for msg in lc_messages:
+                    history_wrapper.add_message(msg)
 
             try:
                 async for token in generate_text_response(user_message, active_chat_id):

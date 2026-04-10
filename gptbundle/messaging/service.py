@@ -28,7 +28,7 @@ async def get_chat(
     if chat:
         for message in chat.messages:
             if message.img_s3_keys:
-                message.presigned_urls = [
+                message.img_presigned_urls = [
                     generate_presigned_url(key) for key in message.img_s3_keys
                 ]
     return chat

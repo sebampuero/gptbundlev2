@@ -4,8 +4,10 @@ import logging
 import uuid
 from collections.abc import AsyncGenerator
 
+import litellm
 from litellm import acompletion
 
+from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.media_storage.storage import generate_presigned_url, upload_file
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
@@ -22,6 +24,10 @@ async def generate_text_response(
     formatted_input = input_to_llm(user_message)
     use_rag = bool(user_message.pdf_s3_keys)
     logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
+    if not litellm.supports_reasoning(user_message.llm_model):
+        raise ModelDoesNotSupportReasoningEffortError(
+            f"Model {user_message.llm_model} does not support reasoning effort"
+        )
     chain = router.route(
         use_rag=use_rag,
         chat_id=chat_id,

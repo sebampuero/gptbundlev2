@@ -72,9 +72,9 @@ export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isL
                 paddingTop={0}
             >
                 <Markdown>{message.content}</Markdown>
-                {message.presigned_urls && message.presigned_urls.length > 0 && (
+                {message.img_presigned_urls && message.img_presigned_urls.length > 0 && (
                     <Box display="flex" alignItems="center" mt={2}>
-                        {message.presigned_urls.map((url, index) => (
+                        {message.img_presigned_urls.map((url, index) => (
                             <Image
                                 key={index}
                                 src={url}
