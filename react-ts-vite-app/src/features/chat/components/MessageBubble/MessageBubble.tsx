@@ -7,13 +7,13 @@ import { Image } from "@chakra-ui/react";
 
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 
+import type { Message } from "../../types";
+
+
 interface MessageBubbleProps {
-    message: {
-        role: string;
-        content: string;
-        presigned_urls?: string[];
-    };
+    message: Message;
 }
+
 
 const bounce = keyframes`
   0%, 80%, 100% { transform: scale(0); }

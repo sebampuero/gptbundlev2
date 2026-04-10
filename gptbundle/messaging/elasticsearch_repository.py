@@ -14,7 +14,9 @@ class ElasticsearchRepository:
     _client: AsyncElasticsearch | None = None
 
     def __init__(self):
-        if ElasticsearchRepository._client is None:
+        if (
+            ElasticsearchRepository._client is None
+        ):  # TODO: not thread safe and not pythonic
             ElasticsearchRepository._client = self._create_client()
         self.client = ElasticsearchRepository._client
 

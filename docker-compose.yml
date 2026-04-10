@@ -7,8 +7,15 @@ secrets:
     environment: S3_ACCESS_KEY_ID
   s3_secret_access_key:
     environment: S3_SECRET_ACCESS_KEY
+  mistral_api_key:
+    environment: MISTRAL_API_KEY
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
   web:
     build: .
     container_name: gptbundle
@@ -80,3 +87,4 @@ volumes:
   postgres_data:
   dynamodb_data:
   esdata:
+  redis_data:

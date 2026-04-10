@@ -15,7 +15,7 @@ async def create_chat(
     chat_in: ChatCreate,
     chat_repo: ChatRepository,
     es_repo: ElasticsearchRepository,
-) -> Chat:
+) -> Chat:  # TODO: this is prone to inconsistencies, decouple into async storage
     chat = await asyncio.to_thread(chat_repo.create_chat, chat_in)
     await es_repo.store_chat(chat)
     return chat
@@ -27,9 +27,9 @@ async def get_chat(
     chat = await asyncio.to_thread(chat_repo.get_chat, chat_id, timestamp, user_email)
     if chat:
         for message in chat.messages:
-            if message.media_s3_keys:
+            if message.img_s3_keys:
                 message.presigned_urls = [
-                    generate_presigned_url(key) for key in message.media_s3_keys
+                    generate_presigned_url(key) for key in message.img_s3_keys
                 ]
     return chat
 
@@ -62,7 +62,7 @@ async def append_messages(
     chat_repo: ChatRepository,
     user_email: str,
     es_repo: ElasticsearchRepository,
-) -> bool:
+) -> bool:  # TODO: this is prone to inconsistencies, decouple into async storage
     success = await asyncio.to_thread(
         chat_repo.append_messages, chat_id, timestamp, messages, user_email
     )
@@ -88,8 +88,8 @@ async def delete_chat(
 
     s3_keys = []
     for msg in chat.messages:
-        if msg.media_s3_keys:
-            s3_keys.extend(msg.media_s3_keys)
+        if msg.img_s3_keys:
+            s3_keys.extend(msg.img_s3_keys)
 
     deleted = await asyncio.to_thread(
         chat_repo.delete_chat, chat_id, timestamp, user_email

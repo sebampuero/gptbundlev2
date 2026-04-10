@@ -1,5 +1,8 @@
 import { Box, Text, VStack, IconButton, HStack } from "@chakra-ui/react";
 import { LuTrash2 } from "react-icons/lu";
+import type { ChatMetadata } from "../../types";
+
+
 
 interface ChatListItemProps {
     id: string;
@@ -7,10 +10,11 @@ interface ChatListItemProps {
     timestamp: string;
     rawTimestamp: number;
     onDelete: (id: string, timestamp: number) => void;
-    currentChat: { chatId?: string; timestamp?: string };
+    currentChat: ChatMetadata;
     startNewChat: () => void;
     onSelectChat: (id: string, timestamp: number) => void;
 }
+
 
 export const ChatListItem = ({
     id,

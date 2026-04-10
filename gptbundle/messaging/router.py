@@ -305,14 +305,24 @@ async def websocket_text_generation_endpoint(
                 )
                 continue
 
-            if user_message.media_s3_keys:
-                for s3_key in user_message.media_s3_keys:
+            if user_message.img_s3_keys:
+                for s3_key in user_message.img_s3_keys:
                     await asyncio.to_thread(
                         move_file, s3_key, s3_key.replace("temp/", "permanent/")
                     )
-                user_message.media_s3_keys = [
+                user_message.img_s3_keys = [
                     s3_key.replace("temp/", "permanent/")
-                    for s3_key in user_message.media_s3_keys
+                    for s3_key in user_message.img_s3_keys
+                ]
+
+            if user_message.pdf_s3_keys:
+                for s3_key in user_message.pdf_s3_keys:
+                    await asyncio.to_thread(
+                        move_file, s3_key, s3_key.replace("temp/", "permanent/")
+                    )
+                user_message.pdf_s3_keys = [
+                    s3_key.replace("temp/", "permanent/")
+                    for s3_key in user_message.pdf_s3_keys
                 ]
 
             try:
@@ -362,22 +372,19 @@ async def websocket_text_generation_endpoint(
             ai_message = MessageCreate(
                 content="", role=MessageRole.ASSISTANT, llm_model=llm_model
             )
-            user_chat = await get_chat(
-                active_chat_id, active_timestamp, chat_repo, user_email
-            )
 
             try:
-                async for chunk in await generate_text_response(user_chat):
-                    token = chunk.choices[0].delta.content
-                    if token:
-                        ai_message.content += token
-                        await websocket.send_json(
-                            WebSocketMessage(
-                                type=WebSocketMessageType.TOKEN, content=token
-                            ).model_dump()
-                        )
+                async for token in generate_text_response(user_message, active_chat_id):
+                    ai_message.content += token
+                    await websocket.send_json(
+                        WebSocketMessage(
+                            type=WebSocketMessageType.TOKEN, content=token
+                        ).model_dump()
+                    )
             except ModelDoesNotSupportReasoningEffortError as e:
-                logger.error(f"Error during LLM generation: {e}")
+                logger.error(
+                    f"Error during LLM generation: {e}", exc_info=True, stack_info=True
+                )
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.ERROR,

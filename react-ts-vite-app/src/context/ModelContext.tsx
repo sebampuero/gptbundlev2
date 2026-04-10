@@ -5,7 +5,7 @@ interface ModelContextType {
     setSelectedModel: (model: string) => void;
 }
 
-const DEFAULT_MODEL = "openrouter/mistralai/mistral-7b-instruct:free";
+const DEFAULT_MODEL = "mistralai/mistral-7b-instruct:free";
 const STORAGE_KEY = "selected_llm_model";
 
 const ModelContext = createContext<ModelContextType | undefined>(undefined);

@@ -129,7 +129,8 @@ class ChatRepository:
                     content=msg.content,
                     role=msg.role,
                     message_type=msg.message_type,
-                    media_s3_keys=msg.media_s3_keys,
+                    img_s3_keys=msg.img_s3_keys,
+                    pdf_s3_keys=msg.pdf_s3_keys,
                     llm_model=msg.llm_model,
                     reasoning_effort=msg.reasoning_effort,
                 )

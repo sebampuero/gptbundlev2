@@ -25,8 +25,10 @@ class MessageItem(MapAttribute):
     content = UnicodeAttribute()
     role = UnicodeAttribute()
     message_type = UnicodeAttribute()
-    media_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
-    presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
+    img_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
+    pdf_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
+    img_presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
+    pdf_presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
     llm_model = UnicodeAttribute()
     reasoning_effort = UnicodeAttribute(null=True)
 

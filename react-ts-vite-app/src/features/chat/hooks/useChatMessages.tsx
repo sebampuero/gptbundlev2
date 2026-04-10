@@ -3,35 +3,14 @@ import { apiClient } from "../../../api/client";
 import { useModel } from "../../../context/ModelContext";
 import { useLLModels } from "../hooks/useLLModels";
 import { useNavigate } from "react-router-dom";
+import type {
+    Message,
+    ReasoningEffort,
+    WebSocketMessage,
+    ChatMetadata
+} from "../types";
 
-export type MessageRole = "user" | "assistant";
 
-export interface Message {
-    content: string;
-    role: MessageRole;
-    llm_model?: string;
-    message_type?: string;
-    is_loading_message?: boolean;
-    media_s3_keys?: string[];
-    presigned_urls?: string[];
-    reasoning_effort?: string | null;
-}
-
-export type ReasoningEffort = "low" | "medium" | "high" | "disabled";
-
-export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
-
-export interface WebSocketMessage {
-    type: WebSocketMessageType;
-    content?: string;
-    chat_id?: string;
-    chat_timestamp?: string;
-}
-
-export interface ChatMetadata {
-    chatId?: string;
-    timestamp?: string;
-}
 
 
 export const useChatMessages = (chatMetadata: ChatMetadata) => {
@@ -321,8 +300,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 content,
                 llm_model,
                 message_type: "text",
-                presigned_urls: presigned_urls, // Store optimistic URLs
-                media_s3_keys: currentMediaS3Keys.current, // Store S3 keys if any
+                img_presigned_urls: presigned_urls,
+                img_s3_keys: currentMediaS3Keys.current,
                 reasoning_effort: reasoningEffortRef.current !== "disabled" ? reasoningEffortRef.current : undefined,
             };
 
@@ -337,10 +316,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             }]);
 
             const payload = {
-                user_message: {
-                    ...userMessage,
-                    presigned_urls: undefined, // Don't send local blob URLs to backend
-                },
+                user_message: userMessage,
                 chat_id: chatIdRef.current,
                 timestamp: timestampRef.current,
             };

@@ -17,7 +17,8 @@ import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain, LuMenu } f
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useLLModels } from "../../hooks/useLLModels";
-import type { ReasoningEffort } from "../../hooks/useChatMessages";
+import type { ReasoningEffort } from "../../types";
+
 import { useModel } from "../../../../context/ModelContext";
 import { Check } from "lucide-react";
 import { useRef } from "react";

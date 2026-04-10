@@ -4,38 +4,34 @@ import logging
 import uuid
 from collections.abc import AsyncGenerator
 
-import litellm
 from litellm import acompletion
 
-from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.media_storage.storage import generate_presigned_url, upload_file
-from gptbundle.messaging.schemas import Chat as MessagingChat
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
-from .chat_factory import convert_chat_to_model
+from .chain_router import router
+from .chat_factory import convert_input_to_lc_format
 
 logger = logging.getLogger(__name__)
 
 
 async def generate_text_response(
-    input_chat: MessagingChat,
+    user_message: MessageCreate,
+    chat_id: str,
 ) -> AsyncGenerator[str, None]:
-    chat = convert_chat_to_model(input_chat)
-    reasoning_effort = input_chat.messages[-1].reasoning_effort
-    logger.debug(
-        f"Using reasoning effort: {reasoning_effort} for chat: {input_chat.chat_id}"
+    formatted_input = convert_input_to_lc_format(user_message)
+    use_rag = bool(user_message.pdf_s3_keys)
+    logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
+    chain = router.route(
+        use_rag=use_rag,
+        chat_id=chat_id,
+        llm_model=user_message.llm_model,
+        reasoning_effort=user_message.reasoning_effort,
     )
-    llm_model = chat.messages[-1].llm_model
-    if reasoning_effort and not litellm.supports_reasoning(model=llm_model):
-        raise ModelDoesNotSupportReasoningEffortError(
-            f"Model {llm_model} does not support reasoning effort"
-        )
-    return await acompletion(
-        model=llm_model,
-        messages=[m.model_dump() for m in chat.messages],
-        stream=True,
-        reasoning_effort=reasoning_effort,
-    )
+    async for token in chain.astream(
+        formatted_input, config={"configurable": {"session_id": chat_id}}
+    ):
+        yield token.content
 
 
 async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
@@ -63,7 +59,7 @@ async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
         content=text_response,
         role=MessageRole.ASSISTANT,
         message_type="text",
-        media_s3_keys=s3_keys,
-        presigned_urls=presigned_urls,
+        img_s3_keys=s3_keys,
+        img_presigned_urls=presigned_urls,
         llm_model=user_message.llm_model,
     )
