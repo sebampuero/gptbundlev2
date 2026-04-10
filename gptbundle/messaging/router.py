@@ -373,6 +373,10 @@ async def websocket_text_generation_endpoint(
                 content="", role=MessageRole.ASSISTANT, llm_model=llm_model
             )
 
+            # TODO: fetch chat with id, ts, and user_email
+            # and if it exists, populate the message history
+            # with the ChatMessageHistoryWrapper
+
             try:
                 async for token in generate_text_response(user_message, active_chat_id):
                     ai_message.content += token

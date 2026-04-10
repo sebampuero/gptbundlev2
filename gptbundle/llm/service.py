@@ -10,7 +10,7 @@ from gptbundle.media_storage.storage import generate_presigned_url, upload_file
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
 from .chain_router import router
-from .chat_factory import convert_input_to_lc_format
+from .chat_factory import input_to_llm
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ async def generate_text_response(
     user_message: MessageCreate,
     chat_id: str,
 ) -> AsyncGenerator[str, None]:
-    formatted_input = convert_input_to_lc_format(user_message)
+    formatted_input = input_to_llm(user_message)
     use_rag = bool(user_message.pdf_s3_keys)
     logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
     chain = router.route(

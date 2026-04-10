@@ -1,21 +1,18 @@
 import logging
 
-from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.runnables.base import Runnable
 from langchain_openrouter import ChatOpenRouter
 
-from gptbundle.common.config import settings
+from .chat_message_history_wrapper import ChatMessageHistoryWrapper
 
 logger = logging.getLogger(__name__)
 
 
-def _get_session_history(session_id: str) -> RedisChatMessageHistory:
-    return RedisChatMessageHistory(session_id, url=settings.REDIS_URL)
-
-
-def get_chain(llm_model: str, reasoning_effort: str | None = None) -> Runnable:
+def get_chain(
+    chat_id: str, llm_model: str, reasoning_effort: str | None = None
+) -> Runnable:
     if reasoning_effort:
         llm = ChatOpenRouter(model=llm_model, reasoning={"effort": reasoning_effort})
     else:
@@ -27,10 +24,12 @@ def get_chain(llm_model: str, reasoning_effort: str | None = None) -> Runnable:
         ]
     )
 
+    history_wrapper = ChatMessageHistoryWrapper(chat_id)
+
     chain = prompt | llm
     conversational_chain = RunnableWithMessageHistory(
         runnable=chain,
-        get_session_history=_get_session_history,
+        get_session_history=history_wrapper.get_history,
         input_messages_key="question",
         history_messages_key="chat_history",
     )

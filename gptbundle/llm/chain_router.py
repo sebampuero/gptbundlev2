@@ -36,7 +36,7 @@ class ChainRouter:
                 self._chat_id_to_chain[chat_id] = {}
             if "conversational" not in self._chat_id_to_chain[chat_id]:
                 self._chat_id_to_chain[chat_id]["conversational"] = (
-                    get_conversational_chain(llm_model, reasoning_effort)
+                    get_conversational_chain(chat_id, llm_model, reasoning_effort)
                 )
             return self._chat_id_to_chain[chat_id]["conversational"]
 

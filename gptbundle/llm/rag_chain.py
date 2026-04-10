@@ -6,7 +6,6 @@ from langchain_classic.chains.history_aware_retriever import (
     create_history_aware_retriever,
 )
 from langchain_classic.chains.retrieval import create_retrieval_chain
-from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_community.document_loaders import S3FileLoader
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.prompts import ChatPromptTemplate
@@ -19,6 +18,8 @@ from langchain_openrouter import ChatOpenRouter
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from gptbundle.common.config import settings
+
+from .chat_message_history_wrapper import ChatMessageHistoryWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +69,6 @@ def _ingest(vector_store: VectorStore, loader: BaseLoader):
     vector_store.add_documents(documents=text_splitter.split_documents(docs))
 
 
-def _get_session_history(session_id: str) -> RedisChatMessageHistory:
-    return RedisChatMessageHistory(session_id, url=settings.REDIS_URL)
-
-
 def _build_chain(chat_id: str, llm_model: str, reasoning_effort: str | None = None):
     loader = _get_document_loader(f"permanent/{chat_id}.pdf")
     vector_store = _get_vector_store()
@@ -104,9 +101,12 @@ def _build_chain(chat_id: str, llm_model: str, reasoning_effort: str | None = No
     )
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+    history_wrapper = ChatMessageHistoryWrapper(chat_id)
+
     rag_chain_with_history = RunnableWithMessageHistory(
         runnable=rag_chain,
-        get_session_history=_get_session_history,
+        get_session_history=history_wrapper.get_history,
         input_messages_key="question",
         history_messages_key="chat_history",
     )
