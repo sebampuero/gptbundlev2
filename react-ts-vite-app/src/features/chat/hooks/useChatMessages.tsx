@@ -27,6 +27,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
     const currentImageS3Keys = useRef<string[]>([]);
+    const currentPDFS3Keys = useRef<string[]>([]);
     const navigate = useNavigate();
 
     // Model context to handle capabilities changes
@@ -183,7 +184,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         };
     }, [connect]);
 
-    const uploadImages = useCallback(async (files: File[]) => {
+    const uploadMedia = useCallback(async (files: File[]) => {
         const formData = new FormData();
         files.forEach((file) => {
             formData.append("files", file);
@@ -195,17 +196,24 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                     "Content-Type": "multipart/form-data",
                 },
             });
-            const keys = response.data.keys;
-            currentImageS3Keys.current = [...currentImageS3Keys.current, ...keys];
+            const keys: string[] = response.data.keys;
+            files.forEach((file, index) => {
+                if (file.type === "application/pdf") {
+                    currentPDFS3Keys.current.push(keys[index]);
+                } else {
+                    currentImageS3Keys.current.push(keys[index]);
+                }
+            });
             return keys;
         } catch (error) {
-            console.error("Error uploading images:", error);
+            console.error("Error uploading media:", error);
             throw error;
         }
     }, []);
 
     const removeMediaKeys = useCallback((keys: string[]) => {
         currentImageS3Keys.current = currentImageS3Keys.current.filter(k => !keys.includes(k));
+        currentPDFS3Keys.current = currentPDFS3Keys.current.filter(k => !keys.includes(k));
     }, []);
 
     const setIsOutputVisionSelected = useCallback((selected: boolean) => {
@@ -302,6 +310,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 message_type: "text",
                 img_presigned_urls: blobUrls, // to be shown in the message bubble when the message is sent
                 img_s3_keys: currentImageS3Keys.current,
+                pdf_s3_keys: currentPDFS3Keys.current,
                 reasoning_effort: reasoningEffortRef.current !== "disabled" ? reasoningEffortRef.current : undefined,
             };
 
@@ -326,6 +335,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             console.error("WebSocket is not open");
         }
         currentImageS3Keys.current = [];
+        currentPDFS3Keys.current = [];
     }, []);
 
     const startNewChat = useCallback(() => {
@@ -341,7 +351,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         sendMessage,
         startNewChat,
         isProcessingMessage,
-        uploadImages,
+        uploadMedia,
         removeMediaKeys,
         isOutputVisionSelected,
         setIsOutputVisionSelected,

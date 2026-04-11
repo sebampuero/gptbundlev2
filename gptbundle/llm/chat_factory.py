@@ -8,7 +8,7 @@ from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
 def input_to_llm(message: MessageCreate) -> dict[str, Any]:
     if not message.img_s3_keys:
-        return {"question": message.content}
+        return {"input": message.content}
 
     question_content = [{"type": "text", "text": message.content}]
     for key in message.img_s3_keys:
@@ -17,7 +17,7 @@ def input_to_llm(message: MessageCreate) -> dict[str, Any]:
             {"type": "image_url", "image_url": {"url": presigned_url}}
         )
 
-    return {"question": question_content}
+    return {"input": question_content}
 
 
 def msg_schema_to_lc_base_message(message: MessageCreate) -> BaseMessage:

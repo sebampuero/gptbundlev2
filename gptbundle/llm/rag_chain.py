@@ -109,8 +109,9 @@ def _build_chain(chat_id: str, llm_model: str, reasoning_effort: str | None = No
     rag_chain_with_history = RunnableWithMessageHistory(
         runnable=rag_chain,
         get_session_history=history_wrapper.get_history,
-        input_messages_key="question",
+        input_messages_key="input",
         history_messages_key="chat_history",
+        output_messages_key="answer",
     )
 
     return rag_chain_with_history

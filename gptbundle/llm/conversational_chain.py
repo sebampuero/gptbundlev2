@@ -20,7 +20,7 @@ def get_chain(
     prompt = ChatPromptTemplate.from_messages(
         [
             MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{question}"),
+            ("human", "{input}"),
         ]
     )
 
@@ -30,7 +30,7 @@ def get_chain(
     conversational_chain = RunnableWithMessageHistory(
         runnable=chain,
         get_session_history=history_wrapper.get_history,
-        input_messages_key="question",
+        input_messages_key="input",
         history_messages_key="chat_history",
     )
 

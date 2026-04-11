@@ -13,7 +13,7 @@ import {
     MenuItem,
 } from "@chakra-ui/react";
 import { useState, useCallback, useMemo } from "react";
-import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain, LuMenu } from "react-icons/lu";
+import { LuPlus, LuSend, LuPanelLeftOpen, LuImage, LuCamera, LuBrain, LuMenu, LuFileText } from "react-icons/lu";
 import { OptionsModal } from "./OptionsModal";
 import { useImagePreview } from "../../../../context/ImagePreviewContext";
 import { useLLModels } from "../../hooks/useLLModels";
@@ -29,7 +29,7 @@ interface ChatInputAreaProps {
     isSidebarOpen: boolean;
     onSendMessage: (content: string, blobUrls?: string[], isReasoningSelected?: boolean) => void;
     onStartNewChat: () => void;
-    uploadImages: (files: File[]) => Promise<string[]>;
+    uploadMedia: (files: File[]) => Promise<string[]>;
     removeMediaKeys: (keys: string[]) => void;
     isWebsocketConnected: boolean;
     isOutputVisionSelected: boolean;
@@ -39,7 +39,9 @@ interface ChatInputAreaProps {
     setReasoningEffort: (effort: ReasoningEffort) => void;
 }
 
-interface PastedImage {
+interface PastedMedia {
+    type: "image" | "pdf";
+    name?: string;
     file: File;
     url: string;
     isLoading: boolean;
@@ -51,7 +53,7 @@ export const ChatInputArea = ({
     isSidebarOpen,
     onSendMessage,
     onStartNewChat,
-    uploadImages,
+    uploadMedia,
     removeMediaKeys,
     isWebsocketConnected,
     isOutputVisionSelected,
@@ -64,10 +66,11 @@ export const ChatInputArea = ({
     const { open, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState("");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [pastedImages, setPastedImages] = useState<PastedImage[]>([]);
+    const [pastedMedia, setPastedMedia] = useState<PastedMedia[]>([]);
     const { models } = useLLModels();
     const { selectedModel } = useModel();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const pdfInputRef = useRef<HTMLInputElement>(null);
     const { showImage } = useImagePreview();
 
     const currentModel = useMemo(() => {
@@ -88,20 +91,20 @@ export const ChatInputArea = ({
             });
             return;
         }
-        if (pastedImages.length > 0 && !supportsInputVision && !isWebsocketConnected) {
+        if (pastedMedia.length > 0 && !supportsInputVision && !isWebsocketConnected && pastedMedia.some(m => m.type === 'image')) {
             return;
         }
 
-        if (inputValue.trim() || pastedImages.length > 0) {
+        if (inputValue.trim() || pastedMedia.length > 0) {
 
-            if (pastedImages.some(img => img.isLoading)) {
+            if (pastedMedia.some(img => img.isLoading)) {
                 return; // Prevent sending while uploading
             }
 
-            const blobUrls = pastedImages.map(img => img.url);
-            onSendMessage(inputValue, blobUrls);
+            const blobUrls = pastedMedia.filter(m => m.type === 'image').map(m => m.url);
+            onSendMessage(inputValue, blobUrls.length > 0 ? blobUrls : undefined);
             setInputValue("");
-            setPastedImages([]);
+            setPastedMedia([]);
         }
     };
 
@@ -118,46 +121,61 @@ export const ChatInputArea = ({
     };
 
     const handleFiles = useCallback(async (files: File[]) => {
-        if (!supportsInputVision) return;
+        const remainingImages = 3 - pastedMedia.filter(m => m.type === 'image').length;
+        const remainingPdfs = 2 - pastedMedia.filter(m => m.type === 'pdf').length;
 
-        const remainingSlots = 3 - pastedImages.length;
-        const filesToUpload = Array.from(files).slice(0, remainingSlots);
+        const imagesToUpload = [];
+        const pdfsToUpload = [];
 
+        for (const file of files) {
+            if (file.type === "application/pdf" && pdfsToUpload.length < remainingPdfs) {
+                pdfsToUpload.push(file);
+            } else if (file.type.indexOf("image") !== -1 && imagesToUpload.length < remainingImages && supportsInputVision) {
+                imagesToUpload.push(file);
+            }
+        }
+
+        const filesToUpload = [...imagesToUpload, ...pdfsToUpload];
         if (filesToUpload.length === 0) return;
 
-        const newImages: PastedImage[] = filesToUpload.map(file => ({
-            file,
-            url: URL.createObjectURL(file),
-            isLoading: true
-        }));
+        let pdfCounter = pastedMedia.filter(m => m.type === 'pdf').length + 1;
+        const newMedia: PastedMedia[] = filesToUpload.map(file => {
+            const isPdf = file.type === "application/pdf";
+            return {
+                file,
+                url: URL.createObjectURL(file), // will be used as preview placeholder for pdf or actual image src
+                type: isPdf ? 'pdf' : 'image',
+                name: isPdf ? `pdf-${pdfCounter++}.pdf` : undefined,
+                isLoading: true
+            };
+        });
 
-        setPastedImages(prev => [...prev, ...newImages]);
+        setPastedMedia(prev => [...prev, ...newMedia]);
 
         try {
-            const keys = await uploadImages(filesToUpload);
-            setPastedImages(prev => {
+            const keys = await uploadMedia(filesToUpload);
+            setPastedMedia(prev => {
                 let keyIndex = 0;
-                return prev.map(img => {
-                    if (filesToUpload.includes(img.file)) {
-                        return { ...img, isLoading: false, key: keys[keyIndex++] };
+                return prev.map(item => {
+                    if (filesToUpload.includes(item.file)) {
+                        return { ...item, isLoading: false, key: keys[keyIndex++] };
                     }
-                    return img;
+                    return item;
                 });
             });
         } catch (error) {
-            console.error("Failed to upload images", error);
-            setPastedImages(prev => prev.filter(img => !filesToUpload.includes(img.file)));
+            console.error("Failed to upload media", error);
+            setPastedMedia(prev => prev.filter(item => !filesToUpload.includes(item.file)));
         }
-    }, [pastedImages, uploadImages, supportsInputVision]);
+    }, [pastedMedia, uploadMedia, supportsInputVision]);
 
     const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
-        if (!supportsInputVision) return;
 
         const items = e.clipboardData.items;
         const files: File[] = [];
 
         for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
+            if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
                 const file = items[i].getAsFile();
                 if (file) files.push(file);
             }
@@ -177,20 +195,24 @@ export const ChatInputArea = ({
         }
     };
 
-    const triggerFileInput = () => {
-        fileInputRef.current?.click();
+    const triggerImageInput = () => {
+        imageInputRef.current?.click();
+    };
+
+    const triggerPdfInput = () => {
+        pdfInputRef.current?.click();
     };
 
     const triggerOutputVision = () => {
         setIsOutputVisionSelected(!isOutputVisionSelected);
     };
 
-    const removeImage = (index: number) => {
-        const image = pastedImages[index];
-        if (image.key) {
-            removeMediaKeys([image.key]);
+    const removeMedia = (index: number) => {
+        const item = pastedMedia[index];
+        if (item.key) {
+            removeMediaKeys([item.key]);
         }
-        setPastedImages(prev => prev.filter((_, i) => i !== index));
+        setPastedMedia(prev => prev.filter((_, i) => i !== index));
     };
 
     const actionButtons = (
@@ -245,11 +267,20 @@ export const ChatInputArea = ({
                 </MenuContent>
             </MenuRoot>
             <IconButton
+                aria-label="Upload pdf files"
+                variant="ghost"
+                size="sm"
+                onClick={triggerPdfInput}
+                disabled={pastedMedia.filter(m => m.type === 'pdf').length >= 2}
+            >
+                <LuFileText />
+            </IconButton>
+            <IconButton
                 aria-label="Upload images"
                 variant="ghost"
                 size="sm"
-                onClick={triggerFileInput}
-                disabled={pastedImages.length >= 3 || !supportsInputVision}
+                onClick={triggerImageInput}
+                disabled={pastedMedia.filter(m => m.type === 'image').length >= 3 || !supportsInputVision}
             >
                 <LuImage />
             </IconButton>
@@ -267,21 +298,42 @@ export const ChatInputArea = ({
     return (
         <Box p={4} position="absolute" bottom="0" width="full" bg="#f2ece4">
             {/* Image Preview Area */}
-            {pastedImages.length > 0 && (
+            {pastedMedia.length > 0 && (
                 <HStack gap={4} mb={2} px={2} overflowX="auto">
-                    {pastedImages.map((img, index) => (
+                    {pastedMedia.map((media, index) => (
                         <Box key={index} position="relative">
-                            <Image
-                                src={img.url}
-                                alt={`Pasted ${index}`}
-                                boxSize="60px"
-                                objectFit="cover"
-                                borderRadius="md"
-                                opacity={img.isLoading ? 0.5 : 1}
-                                cursor="pointer"
-                                onClick={() => !img.isLoading && showImage(img.url)}
-                            />
-                            {img.isLoading && (
+                            {media.type === 'image' ? (
+                                <Image
+                                    src={media.url}
+                                    alt={`Pasted ${index}`}
+                                    boxSize="60px"
+                                    objectFit="cover"
+                                    borderRadius="md"
+                                    opacity={media.isLoading ? 0.5 : 1}
+                                    cursor="pointer"
+                                    onClick={() => !media.isLoading && showImage(media.url)}
+                                />
+                            ) : (
+                                <Box
+                                    boxSize="60px"
+                                    bg="gray.100"
+                                    borderRadius="md"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                    flexDirection="column"
+                                    border="1px solid"
+                                    borderColor="gray.200"
+                                    opacity={media.isLoading ? 0.5 : 1}
+                                    color="gray.600"
+                                >
+                                    <LuFileText size={24} />
+                                    <Box fontSize="10px" mt={1} maxW="50px">
+                                        {media.name}
+                                    </Box>
+                                </Box>
+                            )}
+                            {media.isLoading && (
                                 <Spinner
                                     position="absolute"
                                     top="50%"
@@ -298,7 +350,7 @@ export const ChatInputArea = ({
                                 bg="red.500"
                                 color="white"
                                 borderRadius="full"
-                                onClick={() => removeImage(index)}
+                                onClick={() => removeMedia(index)}
                             />
                         </Box>
                     ))}
@@ -334,7 +386,15 @@ export const ChatInputArea = ({
                     accept="image/png,image/jpeg"
                     multiple
                     style={{ display: "none" }}
-                    ref={fileInputRef}
+                    ref={imageInputRef}
+                    onChange={onFileChange}
+                />
+                <input
+                    type="file"
+                    accept="application/pdf"
+                    multiple
+                    style={{ display: "none" }}
+                    ref={pdfInputRef}
                     onChange={onFileChange}
                 />
                 <HStack gap={2} display={{ base: "none", md: "flex" }}>
@@ -377,7 +437,7 @@ export const ChatInputArea = ({
                     size="sm"
                     _hover={{ bg: "green.600" }}
                     onClick={handleSend}
-                    disabled={pastedImages.some(img => img.isLoading) || (pastedImages.length > 0 && !supportsInputVision)}
+                    disabled={pastedMedia.some(img => img.isLoading) || (pastedMedia.filter(m => m.type === 'image').length > 0 && !supportsInputVision)}
                 >
                     <LuSend />
                 </IconButton>

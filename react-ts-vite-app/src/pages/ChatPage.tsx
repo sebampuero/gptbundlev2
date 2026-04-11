@@ -26,7 +26,7 @@ export const ChatPage = () => {
         isConnected,
         startNewChat,
         isProcessingMessage,
-        uploadImages,
+        uploadMedia,
         removeMediaKeys,
         isOutputVisionSelected,
         setIsOutputVisionSelected,
@@ -126,7 +126,7 @@ export const ChatPage = () => {
                         onSendMessage={(content, blobUrls) =>
                             sendMessage(content, user?.email || "", selectedModel, blobUrls)}
                         onStartNewChat={handleStartNewChat}
-                        uploadImages={uploadImages}
+                        uploadMedia={uploadMedia}
                         removeMediaKeys={removeMediaKeys}
                         isWebsocketConnected={isConnected}
                         isOutputVisionSelected={isOutputVisionSelected}

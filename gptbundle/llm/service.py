@@ -40,7 +40,12 @@ async def generate_text_response(
     async for token in chain.astream(
         formatted_input, config={"configurable": {"session_id": chat_id}}
     ):
-        yield token.content
+        if hasattr(token, "content"):
+            yield token.content
+        elif isinstance(token, dict) and "answer" in token:
+            yield token["answer"]
+        else:
+            logger.warning(f"Unexpected token type: {type(token)}")
 
 
 async def generate_image_response(user_message: MessageCreate) -> MessageCreate:

@@ -1,6 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
 import { Copy, Check } from "lucide-react";
+import { LuFileText } from "react-icons/lu";
 import { useState } from "react";
 import Markdown from "react-markdown";
 import { Image } from "@chakra-ui/react";
@@ -88,6 +89,27 @@ export const MessageBubble = ({ message, isLoading }: MessageBubbleProps & { isL
                                 transition="transform 0.2s"
                                 _hover={{ transform: "scale(1.02)" }}
                             />
+                        ))}
+                    </Box>
+                )}
+                {message.pdf_s3_keys && message.pdf_s3_keys.length > 0 && (
+                    <Box display="flex" alignItems="center" mt={2} flexWrap="wrap" gap={2}>
+                        {message.pdf_s3_keys.map((_, index) => (
+                            <Box
+                                key={index}
+                                p={3}
+                                borderRadius="md"
+                                bg={isUser ? "blue.400" : "gray.100"}
+                                color={isUser ? "white" : "black"}
+                                display="flex"
+                                alignItems="center"
+                                gap={2}
+                                border="1px solid"
+                                borderColor={isUser ? "blue.300" : "gray.200"}
+                            >
+                                <LuFileText size={20} />
+                                <Box fontSize="sm">pdf-{index + 1}.pdf</Box>
+                            </Box>
                         ))}
                     </Box>
                 )}
