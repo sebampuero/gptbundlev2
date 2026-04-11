@@ -27,7 +27,7 @@ services:
     ports:
       - "9000:8000"
     volumes:
-      - ./dynamodb_data_dev:/home/dynamodblocal/data/
+      - dynamodb_data_dev:/home/dynamodblocal/data/
 
   minio:
     image: minio/minio

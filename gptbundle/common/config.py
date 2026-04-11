@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     S3_REGION: str = "eu-central-1"
     S3_DOC_PREFIX: str = "pdfdocuments"
 
+    CHROMA_PERSIST_DIRECTORY: str = "./chroma_data"
     VECTOR_STORE_COLLECTION_NAME: str = "gptbundle"
     MISTRAL_EMBED_MODEL: str = "mistral-embed"
     MISTRAL_API_KEY: str

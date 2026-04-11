@@ -22,6 +22,8 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    volumes:
+      - chroma_data:/app/chroma_data
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -66,7 +68,7 @@ services:
     ports:
       - "9000:8000"
     volumes:
-      - ./dynamodb_data:/home/dynamodblocal/data/
+      - dynamodb_data:/home/dynamodblocal/data/
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.1
@@ -88,3 +90,4 @@ volumes:
   dynamodb_data:
   esdata:
   redis_data:
+  chroma_data:

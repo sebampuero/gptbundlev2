@@ -48,14 +48,14 @@ def _get_document_loader(file_key: str) -> S3FileLoader:
     )
 
 
-def _get_vector_store():
-    return Chroma(  # TODO: it shouldn't be created for every chat
-        # maybe use the server version or pinecone?
-        collection_name=settings.VECTOR_STORE_COLLECTION_NAME,
+def _get_vector_store(chat_id: str):
+    return Chroma(
+        collection_name=f"{settings.VECTOR_STORE_COLLECTION_NAME}_{chat_id}",
         embedding_function=MistralAIEmbeddings(
             model=settings.MISTRAL_EMBED_MODEL,
             api_key=settings.MISTRAL_API_KEY,
         ),
+        persist_directory=settings.CHROMA_PERSIST_DIRECTORY,
     )
 
 
@@ -71,7 +71,7 @@ def _ingest(vector_store: VectorStore, loader: BaseLoader):
 
 def _build_chain(chat_id: str, llm_model: str, reasoning_effort: str | None = None):
     loader = _get_document_loader(f"permanent/{chat_id}.pdf")
-    vector_store = _get_vector_store()
+    vector_store = _get_vector_store(chat_id)
     _ingest(vector_store, loader)
     retriever = vector_store.as_retriever(
         search_type="similarity", search_kwargs={"k": 3}
