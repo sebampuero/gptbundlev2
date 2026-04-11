@@ -27,10 +27,10 @@ import { toaster } from "../../../../components/ui/toaster";
 interface ChatInputAreaProps {
     onShowSidebar: () => void;
     isSidebarOpen: boolean;
-    onSendMessage: (content: string, presignedUrls?: string[], isReasoningSelected?: boolean) => void;
+    onSendMessage: (content: string, blobUrls?: string[], isReasoningSelected?: boolean) => void;
     onStartNewChat: () => void;
     uploadImages: (files: File[]) => Promise<string[]>;
-    removeMediaKey: (key: string) => void;
+    removeMediaKeys: (keys: string[]) => void;
     isWebsocketConnected: boolean;
     isOutputVisionSelected: boolean;
     setIsOutputVisionSelected: (selected: boolean) => void;
@@ -52,7 +52,7 @@ export const ChatInputArea = ({
     onSendMessage,
     onStartNewChat,
     uploadImages,
-    removeMediaKey,
+    removeMediaKeys,
     isWebsocketConnected,
     isOutputVisionSelected,
     setIsOutputVisionSelected,
@@ -98,8 +98,8 @@ export const ChatInputArea = ({
                 return; // Prevent sending while uploading
             }
 
-            const presignedUrls = pastedImages.map(img => img.url);
-            onSendMessage(inputValue, presignedUrls);
+            const blobUrls = pastedImages.map(img => img.url);
+            onSendMessage(inputValue, blobUrls);
             setInputValue("");
             setPastedImages([]);
         }
@@ -188,7 +188,7 @@ export const ChatInputArea = ({
     const removeImage = (index: number) => {
         const image = pastedImages[index];
         if (image.key) {
-            removeMediaKey(image.key);
+            removeMediaKeys([image.key]);
         }
         setPastedImages(prev => prev.filter((_, i) => i !== index));
     };

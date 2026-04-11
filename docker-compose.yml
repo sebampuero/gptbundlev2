@@ -68,7 +68,7 @@ services:
     ports:
       - "9000:8000"
     volumes:
-      - dynamodb_data:/home/dynamodblocal/data/
+      - ./dynamodb_data:/home/dynamodblocal/data/
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.1

@@ -26,7 +26,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const reasoningEffortRef = useRef<ReasoningEffort>("disabled");
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
-    const currentMediaS3Keys = useRef<string[]>([]);
+    const currentImageS3Keys = useRef<string[]>([]);
     const navigate = useNavigate();
 
     // Model context to handle capabilities changes
@@ -196,7 +196,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 },
             });
             const keys = response.data.keys;
-            currentMediaS3Keys.current = [...currentMediaS3Keys.current, ...keys];
+            currentImageS3Keys.current = [...currentImageS3Keys.current, ...keys];
             return keys;
         } catch (error) {
             console.error("Error uploading images:", error);
@@ -204,8 +204,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         }
     }, []);
 
-    const removeMediaKey = useCallback((key: string) => {
-        currentMediaS3Keys.current = currentMediaS3Keys.current.filter(k => k !== key);
+    const removeMediaKeys = useCallback((keys: string[]) => {
+        currentImageS3Keys.current = currentImageS3Keys.current.filter(k => !keys.includes(k));
     }, []);
 
     const setIsOutputVisionSelected = useCallback((selected: boolean) => {
@@ -271,7 +271,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         }
     }, []);
 
-    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
+    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, blobUrls?: string[]) => {
         if (!userEmail) {
             console.error("No user email provided");
             return;
@@ -300,8 +300,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 content,
                 llm_model,
                 message_type: "text",
-                img_presigned_urls: presigned_urls,
-                img_s3_keys: currentMediaS3Keys.current,
+                img_presigned_urls: blobUrls, // to be shown in the message bubble when the message is sent
+                img_s3_keys: currentImageS3Keys.current,
                 reasoning_effort: reasoningEffortRef.current !== "disabled" ? reasoningEffortRef.current : undefined,
             };
 
@@ -325,7 +325,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         } else {
             console.error("WebSocket is not open");
         }
-        currentMediaS3Keys.current = [];
+        currentImageS3Keys.current = [];
     }, []);
 
     const startNewChat = useCallback(() => {
@@ -342,7 +342,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         startNewChat,
         isProcessingMessage,
         uploadImages,
-        removeMediaKey,
+        removeMediaKeys,
         isOutputVisionSelected,
         setIsOutputVisionSelected,
         isReasoningSelected,

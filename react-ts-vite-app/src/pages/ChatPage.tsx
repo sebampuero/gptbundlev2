@@ -27,7 +27,7 @@ export const ChatPage = () => {
         startNewChat,
         isProcessingMessage,
         uploadImages,
-        removeMediaKey,
+        removeMediaKeys,
         isOutputVisionSelected,
         setIsOutputVisionSelected,
         isReasoningSelected,
@@ -123,11 +123,11 @@ export const ChatPage = () => {
                     <ChatInputArea
                         onShowSidebar={toggleSidebar}
                         isSidebarOpen={isSidebarOpen}
-                        onSendMessage={(content, presignedUrls) => 
-                            sendMessage(content, user?.email || "", selectedModel, presignedUrls)}
+                        onSendMessage={(content, blobUrls) =>
+                            sendMessage(content, user?.email || "", selectedModel, blobUrls)}
                         onStartNewChat={handleStartNewChat}
                         uploadImages={uploadImages}
-                        removeMediaKey={removeMediaKey}
+                        removeMediaKeys={removeMediaKeys}
                         isWebsocketConnected={isConnected}
                         isOutputVisionSelected={isOutputVisionSelected}
                         setIsOutputVisionSelected={setIsOutputVisionSelected}
