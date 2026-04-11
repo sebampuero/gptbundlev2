@@ -69,7 +69,7 @@ async def append_messages(
     if success:
         full_chat = await asyncio.to_thread(
             chat_repo.get_chat, chat_id, timestamp, user_email
-        )
+        )  # TODO: decouple!! too much overhead
         if full_chat:
             await es_repo.update_chat(full_chat)
     return success

@@ -24,7 +24,9 @@ async def generate_text_response(
     formatted_input = input_to_llm(user_message)
     use_rag = bool(user_message.pdf_s3_keys)
     logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
-    if not litellm.supports_reasoning(user_message.llm_model):
+    if user_message.reasoning_effort and not litellm.supports_reasoning(
+        user_message.llm_model
+    ):
         raise ModelDoesNotSupportReasoningEffortError(
             f"Model {user_message.llm_model} does not support reasoning effort"
         )

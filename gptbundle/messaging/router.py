@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from typing import Annotated, Any
@@ -6,11 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
-from gptbundle.llm.chat_factory import msg_schema_to_lc_base_message
-from gptbundle.llm.chat_message_history_wrapper import ChatMessageHistoryWrapper
-from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
-from gptbundle.llm.service import generate_image_response, generate_text_response
-from gptbundle.media_storage.storage import move_file
+from gptbundle.llm.service import generate_image_response
 from gptbundle.security.service import get_current_user
 
 from .elasticsearch_repository import ElasticsearchRepository
@@ -21,7 +16,6 @@ from .schemas import (
     ChatCreate,
     ChatPaginatedResponse,
     MessageCreate,
-    MessageRole,
     WebSocketMessage,
     WebSocketMessageType,
 )
@@ -32,6 +26,12 @@ from .service import (
     delete_chat,
     get_chat,
     get_chats_by_user_email_paginated,
+)
+from .websocket_service import (
+    prepare_chat_history,
+    process_attachments,
+    save_user_message,
+    stream_ai_response,
 )
 
 logger = logging.getLogger(__name__)
@@ -307,142 +307,42 @@ async def websocket_text_generation_endpoint(
                 )
                 continue
 
-            if user_message.img_s3_keys:
-                for s3_key in user_message.img_s3_keys:
-                    await asyncio.to_thread(
-                        move_file, s3_key, s3_key.replace("temp/", "permanent/")
-                    )
-                user_message.img_s3_keys = [
-                    s3_key.replace("temp/", "permanent/")
-                    for s3_key in user_message.img_s3_keys
-                ]
+            await process_attachments(user_message=user_message)
 
-            if user_message.pdf_s3_keys:
-                for s3_key in user_message.pdf_s3_keys:
-                    await asyncio.to_thread(
-                        move_file, s3_key, s3_key.replace("temp/", "permanent/")
-                    )
-                user_message.pdf_s3_keys = [
-                    s3_key.replace("temp/", "permanent/")
-                    for s3_key in user_message.pdf_s3_keys
-                ]
-
-            try:
-                chat_in = ChatCreate(
-                    user_email=user_email,
-                    messages=[user_message],
-                    chat_id=active_chat_id,
-                    timestamp=active_timestamp,
-                )
-                logger.debug(f"Creating new chat for user: {user_email}")
-                await create_chat(chat_repo=chat_repo, chat_in=chat_in, es_repo=es_repo)
-                logger.debug(
-                    f"Created new chat for user: {user_email} "
-                    f"with chat_id: {active_chat_id} and "
-                    f"timestamp: {active_timestamp}"
-                )
-            except ChatAlreadyExistsError:
-                logger.debug(f"Chat {active_chat_id} exists, appending message")
-                result_of_append = await append_messages(
-                    chat_repo=chat_repo,
-                    chat_id=active_chat_id,
-                    timestamp=active_timestamp,
-                    messages=[user_message],
-                    user_email=user_email,
-                    es_repo=es_repo,
-                )
-                if not result_of_append:
-                    await websocket.send_json(
-                        WebSocketMessage(
-                            type=WebSocketMessageType.ERROR,
-                            content="Failed to append message to existing chat",
-                        ).model_dump()
-                    )
-                    continue
-            except Exception as e:
-                logger.error(f"Error processing chat message: {e}")
-                await websocket.send_json(
-                    WebSocketMessage(
-                        type=WebSocketMessageType.ERROR,
-                        content="There was an error, please try again later.",
-                    ).model_dump()
-                )
-                continue
-
-            llm_model = user_message.llm_model
-
-            ai_message = MessageCreate(
-                content="", role=MessageRole.ASSISTANT, llm_model=llm_model
-            )
-
-            chat = await get_chat(
-                chat_id=active_chat_id,
-                timestamp=active_timestamp,
-                chat_repo=chat_repo,
+            message_saved = await save_user_message(
                 user_email=user_email,
+                user_message=user_message,
+                active_chat_id=active_chat_id,
+                active_timestamp=active_timestamp,
+                chat_repo=chat_repo,
+                es_repo=es_repo,
             )
 
-            if chat:
-                history_wrapper = ChatMessageHistoryWrapper(session_id=active_chat_id)
-                history_wrapper.clear()
-                lc_messages = [msg_schema_to_lc_base_message(m) for m in chat.messages]
-                for msg in lc_messages:
-                    history_wrapper.add_message(msg)
-
-            try:
-                async for token in generate_text_response(user_message, active_chat_id):
-                    ai_message.content += token
-                    await websocket.send_json(
-                        WebSocketMessage(
-                            type=WebSocketMessageType.TOKEN, content=token
-                        ).model_dump()
-                    )
-            except ModelDoesNotSupportReasoningEffortError as e:
-                logger.error(
-                    f"Error during LLM generation: {e}", exc_info=True, stack_info=True
-                )
+            if not message_saved:
                 await websocket.send_json(
                     WebSocketMessage(
                         type=WebSocketMessageType.ERROR,
-                        content="The model does not support reasoning effort. "
-                        "Please try with another model.",
-                    ).model_dump()
-                )
-            except Exception as e:
-                logger.error(f"Error during LLM generation: {e}")
-                await websocket.send_json(
-                    WebSocketMessage(
-                        type=WebSocketMessageType.ERROR,
-                        content="There was an error, please try again later.",
+                        content="There was an unknown error, please try again later.",
                     ).model_dump()
                 )
                 continue
 
-            try:
-                await append_messages(
-                    chat_repo=chat_repo,
-                    chat_id=active_chat_id,
-                    timestamp=active_timestamp,
-                    messages=[ai_message],
-                    user_email=user_email,
-                    es_repo=es_repo,
-                )
-                logger.debug(
-                    f"Appended AI message to chat: {active_chat_id} "
-                    f"and timestamp: {active_timestamp}"
-                )
-                await websocket.send_json(
-                    WebSocketMessage(
-                        type=WebSocketMessageType.STREAM_FINISHED
-                    ).model_dump()
-                )
-            except Exception as e:
-                logger.error(f"Error persisting AI message: {e}")
-                await websocket.send_json(
-                    WebSocketMessage(
-                        type=WebSocketMessageType.STREAM_FINISHED
-                    ).model_dump()
-                )
+            await prepare_chat_history(
+                active_chat_id=active_chat_id,
+                active_timestamp=active_timestamp,
+                user_email=user_email,
+                chat_repo=chat_repo,
+            )
+
+            await stream_ai_response(
+                websocket=websocket,
+                user_message=user_message,
+                active_chat_id=active_chat_id,
+                active_timestamp=active_timestamp,
+                user_email=user_email,
+                chat_repo=chat_repo,
+                es_repo=es_repo,
+            )
 
         except WebSocketDisconnect:
             logger.debug(f"WebSocket {websocket.client} disconnected")
