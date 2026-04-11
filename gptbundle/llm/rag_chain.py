@@ -6,7 +6,7 @@ from langchain_classic.chains.history_aware_retriever import (
     create_history_aware_retriever,
 )
 from langchain_classic.chains.retrieval import create_retrieval_chain
-from langchain_community.document_loaders import S3FileLoader
+from langchain_community.document_loaders import S3DirectoryLoader
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.prompts.chat import MessagesPlaceholder
@@ -39,10 +39,10 @@ system_prompt = """
     """
 
 
-def _get_document_loader(file_key: str) -> S3FileLoader:
-    return S3FileLoader(
+def _get_document_loader(prefix: str) -> S3DirectoryLoader:
+    return S3DirectoryLoader(
         bucket=settings.S3_BUCKET_NAME,
-        key=file_key,
+        prefix=prefix,
         aws_access_key_id=settings.S3_ACCESS_KEY_ID,
         aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
     )
@@ -70,7 +70,9 @@ def _ingest(vector_store: VectorStore, loader: BaseLoader):
 
 
 def _build_chain(chat_id: str, llm_model: str, reasoning_effort: str | None = None):
-    loader = _get_document_loader(f"permanent/{chat_id}.pdf")
+    loader = _get_document_loader(
+        f"{settings.S3_PERMANENT_PREFIX}{settings.S3_DOC_PREFIX}{chat_id}/"
+    )
     vector_store = _get_vector_store(chat_id)
     _ingest(vector_store, loader)
     retriever = vector_store.as_retriever(

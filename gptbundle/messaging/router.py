@@ -307,7 +307,7 @@ async def websocket_text_generation_endpoint(
                 )
                 continue
 
-            await process_attachments(user_message=user_message)
+            await process_attachments(user_message=user_message, chat_id=active_chat_id)
 
             message_saved = await save_user_message(
                 user_email=user_email,

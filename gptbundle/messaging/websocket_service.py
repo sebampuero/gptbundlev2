@@ -3,6 +3,7 @@ import logging
 
 from fastapi import WebSocket
 
+from gptbundle.common.config import settings
 from gptbundle.llm.chat_factory import msg_schema_to_lc_base_message
 from gptbundle.llm.chat_message_history_wrapper import ChatMessageHistoryWrapper
 from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
@@ -24,24 +25,27 @@ from .service import append_messages, create_chat, get_chat
 logger = logging.getLogger(__name__)
 
 
-async def process_attachments(user_message: MessageCreate) -> None:
+async def process_attachments(user_message: MessageCreate, chat_id: str) -> None:
     if user_message.img_s3_keys:
         for s3_key in user_message.img_s3_keys:
             await asyncio.to_thread(
-                move_file, s3_key, s3_key.replace("temp/", "permanent/")
+                move_file,
+                s3_key,
+                s3_key.replace(settings.S3_TEMP_PREFIX, settings.S3_PERMANENT_PREFIX),
             )
         user_message.img_s3_keys = [
-            s3_key.replace("temp/", "permanent/") for s3_key in user_message.img_s3_keys
+            s3_key.replace(settings.S3_TEMP_PREFIX, settings.S3_PERMANENT_PREFIX)
+            for s3_key in user_message.img_s3_keys
         ]
 
     if user_message.pdf_s3_keys:
-        for s3_key in user_message.pdf_s3_keys:
-            await asyncio.to_thread(
-                move_file, s3_key, s3_key.replace("temp/", "permanent/")
+        for i, s3_key in enumerate(user_message.pdf_s3_keys):
+            new_key = s3_key.replace(
+                settings.S3_TEMP_PREFIX,
+                f"{settings.S3_PERMANENT_PREFIX}{settings.S3_DOC_PREFIX}{chat_id}/",
             )
-        user_message.pdf_s3_keys = [
-            s3_key.replace("temp/", "permanent/") for s3_key in user_message.pdf_s3_keys
-        ]
+            await asyncio.to_thread(move_file, s3_key, new_key)
+            user_message.pdf_s3_keys[i] = new_key
 
 
 async def save_user_message(

@@ -45,7 +45,7 @@ async def test_upload_media_success(client, s3_setup):
     assert len(data["keys"]) == 2
 
     for key in data["keys"]:
-        assert key.startswith("temp/")
+        assert key.startswith(settings.S3_TEMP_PREFIX)
         # Verify file exists in S3
         response_s3 = s3_setup.get_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
         assert response_s3["Body"].read() in [b"dummy image 1", b"dummy image 2"]

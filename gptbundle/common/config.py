@@ -29,7 +29,9 @@ class Settings(BaseSettings):
     S3_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str = "gptbundle"
     S3_REGION: str = "eu-central-1"
-    S3_DOC_PREFIX: str = "pdfdocuments"
+    S3_DOC_PREFIX: str = "pdfs/"
+    S3_PERMANENT_PREFIX: str = "permanent/"
+    S3_TEMP_PREFIX: str = "temp/"
 
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_data"
     VECTOR_STORE_COLLECTION_NAME: str = "gptbundle"

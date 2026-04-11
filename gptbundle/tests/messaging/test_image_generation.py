@@ -35,7 +35,7 @@ async def test_image_generation_returns_presigned_urls(
     token = generate_access_token(user_email)
 
     # Mock the LLM response to return a message with S3 keys
-    s3_key = "permanent/test_image.png"
+    s3_key = f"{settings.S3_PERMANENT_PREFIX}test_image.png"
     mock_response_message = MessageCreate(
         content="Here is an image",
         role=MessageRole.ASSISTANT,

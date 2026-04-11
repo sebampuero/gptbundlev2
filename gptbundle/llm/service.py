@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 import litellm
 from litellm import acompletion
 
+from gptbundle.common.config import settings
 from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.media_storage.storage import generate_presigned_url, upload_file
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
@@ -59,7 +60,7 @@ async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
         if image.get("type") == "image_url":
             _, encoded = image.get("image_url").get("url").split(",", 1)
             image_bytes = base64.b64decode(encoded)
-            s3_key = f"permanent/{str(uuid.uuid4())}.png"
+            s3_key = f"{settings.S3_PERMANENT_PREFIX}{uuid.uuid4()}.png"
             await asyncio.to_thread(upload_file, image_bytes, s3_key)
             s3_keys.append(s3_key)
             presigned_urls.append(generate_presigned_url(s3_key))
