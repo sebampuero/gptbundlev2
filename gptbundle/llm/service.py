@@ -23,7 +23,7 @@ async def generate_text_response(
     chat_id: str,
 ) -> AsyncGenerator[str, None]:
     formatted_input = input_to_llm(user_message)
-    use_rag = bool(user_message.pdf_s3_keys)
+    pdf_was_uploaded = bool(user_message.pdf_s3_keys)
     logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
     if user_message.reasoning_effort and not litellm.supports_reasoning(
         user_message.llm_model
@@ -31,14 +31,27 @@ async def generate_text_response(
         raise ModelDoesNotSupportReasoningEffortError(
             f"Model {user_message.llm_model} does not support reasoning effort"
         )
+
     chain = router.route(
-        use_rag=use_rag,
+        use_rag=pdf_was_uploaded,
         chat_id=chat_id,
-        llm_model=user_message.llm_model,
-        reasoning_effort=user_message.reasoning_effort,
     )
+
+    reasoning_config = (
+        {"effort": user_message.reasoning_effort}
+        if user_message.reasoning_effort
+        else None
+    )
+
     async for token in chain.astream(
-        formatted_input, config={"configurable": {"session_id": chat_id}}
+        formatted_input,
+        config={
+            "configurable": {
+                "session_id": chat_id,
+                "llm_model": user_message.llm_model,
+                "reasoning_effort": reasoning_config,
+            }
+        },
     ):
         if hasattr(token, "content"):
             yield token.content

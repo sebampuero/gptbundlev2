@@ -28,3 +28,7 @@ class ChatMessageHistoryWrapper(BaseChatMessageHistory):
         This function can be passed to RunnableWithMessageHistory's get_session_history.
         """
         return self
+
+
+def get_chat_history(session_id: str) -> BaseChatMessageHistory:
+    return ChatMessageHistoryWrapper(session_id)
