@@ -3,7 +3,7 @@ import { LuChevronDown, LuPanelLeftClose } from "react-icons/lu";
 import { useEffect, useRef } from "react";
 import { SearchField } from "./SearchField";
 import { ChatListItem } from "./ChatListItem";
-import type { Chat } from "../../types";
+import type { Chat, ChatMetadata } from "../../types";
 
 interface SidebarProps {
     onToggle: () => void;
@@ -16,9 +16,10 @@ interface SidebarProps {
     noMoreChatsToLoad: boolean;
     searchChats: (searchTerm: string) => void;
     onSelectChat: (chatId: string, timestamp: number) => void;
-    currentChat: { chatId?: string; timestamp?: string };
+    currentChat: ChatMetadata;
     moreChatsClicked: boolean;
 }
+
 
 export const Sidebar = ({
     onToggle,

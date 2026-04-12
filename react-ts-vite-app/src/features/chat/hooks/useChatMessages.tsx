@@ -3,35 +3,14 @@ import { apiClient } from "../../../api/client";
 import { useModel } from "../../../context/ModelContext";
 import { useLLModels } from "../hooks/useLLModels";
 import { useNavigate } from "react-router-dom";
+import type {
+    Message,
+    ReasoningEffort,
+    WebSocketMessage,
+    ChatMetadata
+} from "../types";
 
-export type MessageRole = "user" | "assistant";
 
-export interface Message {
-    content: string;
-    role: MessageRole;
-    llm_model?: string;
-    message_type?: string;
-    is_loading_message?: boolean;
-    media_s3_keys?: string[];
-    presigned_urls?: string[];
-    reasoning_effort?: string | null;
-}
-
-export type ReasoningEffort = "low" | "medium" | "high" | "disabled";
-
-export type WebSocketMessageType = "token" | "chat_created" | "stream_finished" | "error";
-
-export interface WebSocketMessage {
-    type: WebSocketMessageType;
-    content?: string;
-    chat_id?: string;
-    chat_timestamp?: string;
-}
-
-export interface ChatMetadata {
-    chatId?: string;
-    timestamp?: string;
-}
 
 
 export const useChatMessages = (chatMetadata: ChatMetadata) => {
@@ -47,7 +26,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const reasoningEffortRef = useRef<ReasoningEffort>("disabled");
     const chatIdRef = useRef<string | undefined>(undefined);
     const timestampRef = useRef<string | undefined>(undefined);
-    const currentMediaS3Keys = useRef<string[]>([]);
+    const currentImageS3Keys = useRef<string[]>([]);
+    const currentPDFS3Keys = useRef<string[]>([]);
     const navigate = useNavigate();
 
     // Model context to handle capabilities changes
@@ -204,7 +184,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         };
     }, [connect]);
 
-    const uploadImages = useCallback(async (files: File[]) => {
+    const uploadMedia = useCallback(async (files: File[]) => {
         const formData = new FormData();
         files.forEach((file) => {
             formData.append("files", file);
@@ -216,17 +196,24 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                     "Content-Type": "multipart/form-data",
                 },
             });
-            const keys = response.data.keys;
-            currentMediaS3Keys.current = [...currentMediaS3Keys.current, ...keys];
+            const keys: string[] = response.data.keys;
+            files.forEach((file, index) => {
+                if (file.type === "application/pdf") {
+                    currentPDFS3Keys.current.push(keys[index]);
+                } else {
+                    currentImageS3Keys.current.push(keys[index]);
+                }
+            });
             return keys;
         } catch (error) {
-            console.error("Error uploading images:", error);
+            console.error("Error uploading media:", error);
             throw error;
         }
     }, []);
 
-    const removeMediaKey = useCallback((key: string) => {
-        currentMediaS3Keys.current = currentMediaS3Keys.current.filter(k => k !== key);
+    const removeMediaKeys = useCallback((keys: string[]) => {
+        currentImageS3Keys.current = currentImageS3Keys.current.filter(k => !keys.includes(k));
+        currentPDFS3Keys.current = currentPDFS3Keys.current.filter(k => !keys.includes(k));
     }, []);
 
     const setIsOutputVisionSelected = useCallback((selected: boolean) => {
@@ -292,7 +279,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         }
     }, []);
 
-    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, presigned_urls?: string[]) => {
+    const sendMessage = useCallback((content: string, userEmail: string, llm_model: string, blobUrls?: string[]) => {
         if (!userEmail) {
             console.error("No user email provided");
             return;
@@ -321,8 +308,9 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 content,
                 llm_model,
                 message_type: "text",
-                presigned_urls: presigned_urls, // Store optimistic URLs
-                media_s3_keys: currentMediaS3Keys.current, // Store S3 keys if any
+                img_presigned_urls: blobUrls, // to be shown in the message bubble when the message is sent
+                img_s3_keys: currentImageS3Keys.current,
+                pdf_s3_keys: currentPDFS3Keys.current,
                 reasoning_effort: reasoningEffortRef.current !== "disabled" ? reasoningEffortRef.current : undefined,
             };
 
@@ -337,10 +325,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             }]);
 
             const payload = {
-                user_message: {
-                    ...userMessage,
-                    presigned_urls: undefined, // Don't send local blob URLs to backend
-                },
+                user_message: userMessage,
                 chat_id: chatIdRef.current,
                 timestamp: timestampRef.current,
             };
@@ -349,7 +334,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         } else {
             console.error("WebSocket is not open");
         }
-        currentMediaS3Keys.current = [];
+        currentImageS3Keys.current = [];
+        currentPDFS3Keys.current = [];
     }, []);
 
     const startNewChat = useCallback(() => {
@@ -365,8 +351,8 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
         sendMessage,
         startNewChat,
         isProcessingMessage,
-        uploadImages,
-        removeMediaKey,
+        uploadMedia,
+        removeMediaKeys,
         isOutputVisionSelected,
         setIsOutputVisionSelected,
         isReasoningSelected,

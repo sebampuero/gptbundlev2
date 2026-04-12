@@ -19,15 +19,18 @@ class MessageCreate(BaseModel):
     content: str
     role: MessageRole
     message_type: str = "text"
-    media_s3_keys: list[str] | None = None
+    img_s3_keys: list[str] | None = None
+    pdf_s3_keys: list[str] | None = None
     # this contains the presigned URLs returned using fetch chats
-    presigned_urls: list[str] | None = None
+    img_presigned_urls: list[str] | None = None
+    pdf_presigned_urls: list[str] | None = None
     llm_model: str
     reasoning_effort: str | None = None
 
 
 class ChatBase(BaseModel):
     user_email: str
+    is_rag: bool = False
     messages: list[MessageCreate] = Field(default_factory=list)
 
 

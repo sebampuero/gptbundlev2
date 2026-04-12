@@ -6,6 +6,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
+from gptbundle.common.config import settings
 from gptbundle.media_storage.storage import upload_file
 from gptbundle.security.service import get_current_user
 
@@ -37,7 +38,7 @@ async def upload_media(
             # do not rely on file extension only
             file_ext = os.path.splitext(file.filename or "")[1]
             unique_id = str(uuid.uuid4())
-            key = f"temp/{unique_id}{file_ext}"
+            key = f"{settings.S3_TEMP_PREFIX}{unique_id}{file_ext}"
             file_content = await file.read()
             await asyncio.to_thread(upload_file, file_content, key)
 

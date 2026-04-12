@@ -17,6 +17,7 @@ class ChatRepository:
             chat_id=chat_in.chat_id,
             timestamp=chat_in.timestamp,
             user_email=chat_in.user_email,
+            is_rag=any(msg.pdf_s3_keys for msg in chat_in.messages),
             messages=messages_data,
         )
         try:
@@ -95,6 +96,8 @@ class ChatRepository:
                 )
                 return False
             chat_model.messages.extend([msg.model_dump() for msg in messages])
+            if any(msg.pdf_s3_keys for msg in messages):
+                chat_model.is_rag = True
             chat_model.save()
             logger.debug(
                 f"Appended messages to chat: {chat_id} and timestamp: {timestamp}"
@@ -124,12 +127,14 @@ class ChatRepository:
             chat_id=chat_model.chat_id,
             timestamp=chat_model.timestamp,
             user_email=chat_model.user_email,
+            is_rag=chat_model.is_rag,
             messages=[
                 MessageCreate(
                     content=msg.content,
                     role=msg.role,
                     message_type=msg.message_type,
-                    media_s3_keys=msg.media_s3_keys,
+                    img_s3_keys=msg.img_s3_keys,
+                    pdf_s3_keys=msg.pdf_s3_keys,
                     llm_model=msg.llm_model,
                     reasoning_effort=msg.reasoning_effort,
                 )

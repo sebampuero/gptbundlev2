@@ -1,4 +1,5 @@
 from pynamodb.attributes import (
+    BooleanAttribute,
     ListAttribute,
     MapAttribute,
     NumberAttribute,
@@ -25,8 +26,10 @@ class MessageItem(MapAttribute):
     content = UnicodeAttribute()
     role = UnicodeAttribute()
     message_type = UnicodeAttribute()
-    media_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
-    presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
+    img_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
+    pdf_s3_keys = ListAttribute(of=UnicodeAttribute, null=True)
+    img_presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
+    pdf_presigned_urls = ListAttribute(of=UnicodeAttribute, null=True)
     llm_model = UnicodeAttribute()
     reasoning_effort = UnicodeAttribute(null=True)
 
@@ -42,6 +45,7 @@ class Chat(Model):
     chat_id = UnicodeAttribute(hash_key=True)
     timestamp = NumberAttribute(range_key=True)
     user_email = UnicodeAttribute()
+    is_rag = BooleanAttribute(default=False)
     messages = ListAttribute(of=MessageItem)
 
     user_email_index = UserEmailIndex()

@@ -1,32 +1,36 @@
+from typing import Any
+
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+
 from gptbundle.media_storage.storage import generate_presigned_url
-from gptbundle.messaging.schemas import Chat as MessagingChat
-
-from .models import Chat, MessageImage, MessageText
+from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
 
-def convert_chat_to_model(chat: MessagingChat) -> Chat:
-    messages = []
-    for message in chat.messages:
-        if not message.media_s3_keys:
-            messages.append(
-                MessageText(
-                    role=message.role,
-                    content=message.content,
-                    llm_model=message.llm_model,
-                )
-            )
-        else:
-            image_content = [{"type": "text", "text": message.content}]
-            for key in message.media_s3_keys:
-                presigned_url = generate_presigned_url(key)
-                image_content.append(
-                    {"type": "image_url", "image_url": {"url": presigned_url}}
-                )
-            messages.append(
-                MessageImage(
-                    role=message.role,
-                    content=image_content,
-                    llm_model=message.llm_model,
-                )
-            )
-    return Chat(messages=messages)
+def input_to_llm(message: MessageCreate) -> dict[str, Any]:
+    if not message.img_s3_keys:
+        return {"input": message.content}
+
+    question_content = [{"type": "text", "text": message.content}]
+    for key in message.img_s3_keys:
+        presigned_url = generate_presigned_url(key)
+        question_content.append(
+            {"type": "image_url", "image_url": {"url": presigned_url}}
+        )
+
+    return {"input": question_content}
+
+
+def msg_schema_to_lc_base_message(message: MessageCreate) -> BaseMessage:
+    if message.img_presigned_urls:
+        content = [{"type": "text", "text": message.content}]
+        for url in message.img_presigned_urls:
+            content.append({"type": "image_url", "image_url": {"url": url}})
+    else:
+        content = message.content
+
+    if message.role == MessageRole.USER:
+        return HumanMessage(content=content)
+    elif message.role == MessageRole.ASSISTANT:
+        return AIMessage(content=content)
+    else:
+        raise ValueError(f"Unsupported role: {message.role}")

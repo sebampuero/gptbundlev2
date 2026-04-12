@@ -7,14 +7,23 @@ secrets:
     environment: S3_ACCESS_KEY_ID
   s3_secret_access_key:
     environment: S3_SECRET_ACCESS_KEY
+  mistral_api_key:
+    environment: MISTRAL_API_KEY
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
   web:
     build: .
     container_name: gptbundle
     restart: unless-stopped
     ports:
       - "8000:8000"
+    volumes:
+      - chroma_data:/app/chroma_data
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -80,3 +89,5 @@ volumes:
   postgres_data:
   dynamodb_data:
   esdata:
+  redis_data:
+  chroma_data:

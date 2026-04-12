@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_PORT: int = 5432
 
+    REDIS_URL: str = "redis://redis:6379/0"
+
     AWS_REGION: str = "eu-central-1"
     AWS_ENDPOINT_URL_DYNAMODB: str
 
@@ -27,6 +29,16 @@ class Settings(BaseSettings):
     S3_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str = "gptbundle"
     S3_REGION: str = "eu-central-1"
+    S3_DOC_PREFIX: str = "pdfs/"
+    S3_PERMANENT_PREFIX: str = "permanent/"
+    S3_TEMP_PREFIX: str = "temp/"
+
+    CHROMA_PERSIST_DIRECTORY: str = "./chroma_data"
+    VECTOR_STORE_COLLECTION_NAME: str = "gptbundle"
+    MISTRAL_EMBED_MODEL: str = "mistral-embed"
+    MISTRAL_API_KEY: str
+    SPLITTER_CHUNK_SIZE: int = 2000
+    SPLITTER_CHUNK_OVERLAP: int = 200
 
     ELASTICSEARCH_HOST: str = "http://localhost:9200"
     ELASTICSEARCH_USER: str = "elastic"

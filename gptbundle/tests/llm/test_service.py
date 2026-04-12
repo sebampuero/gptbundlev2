@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from gptbundle.common.config import settings
 from gptbundle.llm.service import generate_image_response
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
@@ -53,12 +54,12 @@ async def test_generate_image_response_success():
         assert result.role == MessageRole.ASSISTANT
         assert result.content == "Here is your image"
         assert result.message_type == "text"
-        assert len(result.media_s3_keys) == 1
+        assert len(result.img_s3_keys) == 1
         assert len(result.presigned_urls) == 1
-        assert result.media_s3_keys[0].startswith("permanent/")
-        assert result.media_s3_keys[0].endswith(".png")
+        assert result.img_s3_keys[0].startswith(settings.S3_PERMANENT_PREFIX)
+        assert result.img_s3_keys[0].endswith(".png")
         assert (
-            f"https://s3.example.com/{result.media_s3_keys[0]}"
+            f"https://s3.example.com/{result.img_s3_keys[0]}"
             == result.presigned_urls[0]
         )
 
@@ -68,7 +69,7 @@ async def test_generate_image_response_success():
         # upload_file takes (file_obj, key), check first arg is bytes
         args, _ = mock_upload_file.call_args
         assert args[0] == mock_image_bytes
-        assert args[1] == result.media_s3_keys[0]
+        assert args[1] == result.img_s3_keys[0]
 
 
 @pytest.mark.asyncio

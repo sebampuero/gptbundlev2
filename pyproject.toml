@@ -18,6 +18,14 @@ dependencies = [
     "boto3>=1.35.0",
     "elasticsearch>=8.13.1,<9.0.0",
     "asyncpg>=0.30.0",
+    "redis>=7.4.0",
+    "langchain-community>=0.4.1",
+    "langchain-mistralai>=1.1.2",
+    "langchain-chroma>=1.1.0",
+    "langchain-core>=1.2.27",
+    "langchain>=1.2.15",
+    "unstructured[pdf]>=0.22.16",
+    "langchain-openrouter>=0.2.1",
 ]
 
 [dependency-groups]
@@ -55,3 +63,7 @@ include = ["gptbundle*"]
 
 [project.scripts]
 admin-cli = "gptbundle.cli:app"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

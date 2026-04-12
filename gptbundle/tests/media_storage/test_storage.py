@@ -50,8 +50,8 @@ def test_generate_presigned_url(s3_setup):
 
 
 def test_move_file(s3_setup):
-    source_key = "temp/test.txt"
-    target_key = "permanent/test.txt"
+    source_key = f"{settings.S3_TEMP_PREFIX}test.txt"
+    target_key = f"{settings.S3_PERMANENT_PREFIX}test.txt"
     test_data = b"move me"
 
     s3_setup.put_object(Bucket=settings.S3_BUCKET_NAME, Key=source_key, Body=test_data)

@@ -7,35 +7,60 @@ from collections.abc import AsyncGenerator
 import litellm
 from litellm import acompletion
 
+from gptbundle.common.config import settings
 from gptbundle.llm.exceptions import ModelDoesNotSupportReasoningEffortError
 from gptbundle.media_storage.storage import generate_presigned_url, upload_file
-from gptbundle.messaging.schemas import Chat as MessagingChat
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
-from .chat_factory import convert_chat_to_model
+from .chain_router import router
+from .chat_factory import input_to_llm
 
 logger = logging.getLogger(__name__)
 
 
 async def generate_text_response(
-    input_chat: MessagingChat,
+    user_message: MessageCreate,
+    chat_id: str,
+    is_rag_chat: bool = False,
 ) -> AsyncGenerator[str, None]:
-    chat = convert_chat_to_model(input_chat)
-    reasoning_effort = input_chat.messages[-1].reasoning_effort
-    logger.debug(
-        f"Using reasoning effort: {reasoning_effort} for chat: {input_chat.chat_id}"
-    )
-    llm_model = chat.messages[-1].llm_model
-    if reasoning_effort and not litellm.supports_reasoning(model=llm_model):
+    formatted_input = input_to_llm(user_message)
+    pdf_was_uploaded = bool(user_message.pdf_s3_keys)
+    logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
+    if user_message.reasoning_effort and not litellm.supports_reasoning(
+        user_message.llm_model
+    ):
         raise ModelDoesNotSupportReasoningEffortError(
-            f"Model {llm_model} does not support reasoning effort"
+            f"Model {user_message.llm_model} does not support reasoning effort"
         )
-    return await acompletion(
-        model=llm_model,
-        messages=[m.model_dump() for m in chat.messages],
-        stream=True,
-        reasoning_effort=reasoning_effort,
+
+    chain = router.route(
+        use_rag=pdf_was_uploaded,
+        chat_id=chat_id,
+        is_rag_chat=is_rag_chat,
     )
+
+    reasoning_config = (
+        {"effort": user_message.reasoning_effort}
+        if user_message.reasoning_effort
+        else None
+    )
+
+    async for token in chain.astream(
+        formatted_input,
+        config={
+            "configurable": {
+                "session_id": chat_id,
+                "llm_model": user_message.llm_model,
+                "reasoning_effort": reasoning_config,
+            }
+        },
+    ):
+        if hasattr(token, "content"):
+            yield token.content
+        elif isinstance(token, dict) and "answer" in token:
+            yield token["answer"]
+        else:
+            logger.warning(f"Unexpected token type: {type(token)}")
 
 
 async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
@@ -55,7 +80,7 @@ async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
         if image.get("type") == "image_url":
             _, encoded = image.get("image_url").get("url").split(",", 1)
             image_bytes = base64.b64decode(encoded)
-            s3_key = f"permanent/{str(uuid.uuid4())}.png"
+            s3_key = f"{settings.S3_PERMANENT_PREFIX}{uuid.uuid4()}.png"
             await asyncio.to_thread(upload_file, image_bytes, s3_key)
             s3_keys.append(s3_key)
             presigned_urls.append(generate_presigned_url(s3_key))
@@ -63,7 +88,7 @@ async def generate_image_response(user_message: MessageCreate) -> MessageCreate:
         content=text_response,
         role=MessageRole.ASSISTANT,
         message_type="text",
-        media_s3_keys=s3_keys,
-        presigned_urls=presigned_urls,
+        img_s3_keys=s3_keys,
+        img_presigned_urls=presigned_urls,
         llm_model=user_message.llm_model,
     )
