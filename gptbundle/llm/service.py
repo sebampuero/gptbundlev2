@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 async def generate_text_response(
     user_message: MessageCreate,
     chat_id: str,
+    is_rag_chat: bool = False,
 ) -> AsyncGenerator[str, None]:
     formatted_input = input_to_llm(user_message)
     pdf_was_uploaded = bool(user_message.pdf_s3_keys)
@@ -35,6 +36,7 @@ async def generate_text_response(
     chain = router.route(
         use_rag=pdf_was_uploaded,
         chat_id=chat_id,
+        is_rag_chat=is_rag_chat,
     )
 
     reasoning_config = (

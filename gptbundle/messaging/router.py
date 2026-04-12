@@ -327,7 +327,7 @@ async def websocket_text_generation_endpoint(
                 )
                 continue
 
-            await prepare_chat_history(
+            is_rag = await prepare_chat_history(
                 active_chat_id=active_chat_id,
                 active_timestamp=active_timestamp,
                 user_email=user_email,
@@ -342,6 +342,7 @@ async def websocket_text_generation_endpoint(
                 user_email=user_email,
                 chat_repo=chat_repo,
                 es_repo=es_repo,
+                is_rag_chat=is_rag,
             )
 
         except WebSocketDisconnect:

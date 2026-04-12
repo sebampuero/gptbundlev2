@@ -30,6 +30,7 @@ class MessageCreate(BaseModel):
 
 class ChatBase(BaseModel):
     user_email: str
+    is_rag: bool = False
     messages: list[MessageCreate] = Field(default_factory=list)
 
 

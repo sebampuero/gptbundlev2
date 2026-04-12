@@ -92,7 +92,7 @@ async def prepare_chat_history(
     active_timestamp: float,
     user_email: str,
     chat_repo: ChatRepository,
-) -> None:
+) -> bool:
     chat = await get_chat(
         chat_id=active_chat_id,
         timestamp=active_timestamp,
@@ -106,6 +106,8 @@ async def prepare_chat_history(
         lc_messages = [msg_schema_to_lc_base_message(m) for m in chat.messages]
         for msg in lc_messages:
             history_wrapper.add_message(msg)
+        return chat.is_rag
+    return False
 
 
 async def stream_ai_response(
@@ -116,6 +118,7 @@ async def stream_ai_response(
     user_email: str,
     chat_repo: ChatRepository,
     es_repo: ElasticsearchRepository,
+    is_rag_chat: bool = False,
 ) -> None:
     llm_model = user_message.llm_model
     ai_message = MessageCreate(
@@ -123,7 +126,9 @@ async def stream_ai_response(
     )
 
     try:
-        async for token in generate_text_response(user_message, active_chat_id):
+        async for token in generate_text_response(
+            user_message, active_chat_id, is_rag_chat
+        ):
             ai_message.content += token
             await websocket.send_json(
                 WebSocketMessage(

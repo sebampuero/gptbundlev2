@@ -19,8 +19,9 @@ class ChainRouter:
         self,
         use_rag: bool,
         chat_id: str,
+        is_rag_chat: bool = False,
     ) -> Runnable:
-        if use_rag or self._chat_id_to_type.get(chat_id) == "rag":
+        if use_rag or is_rag_chat or self._chat_id_to_type.get(chat_id) == "rag":
             logger.debug(f"Routing to RAG chain for chat_id: {chat_id}")
 
             if self._chat_id_to_type.get(chat_id) != "rag":

@@ -1,4 +1,5 @@
 from pynamodb.attributes import (
+    BooleanAttribute,
     ListAttribute,
     MapAttribute,
     NumberAttribute,
@@ -44,6 +45,7 @@ class Chat(Model):
     chat_id = UnicodeAttribute(hash_key=True)
     timestamp = NumberAttribute(range_key=True)
     user_email = UnicodeAttribute()
+    is_rag = BooleanAttribute(default=False)
     messages = ListAttribute(of=MessageItem)
 
     user_email_index = UserEmailIndex()
