@@ -27,7 +27,7 @@ async def generate_text_response(
     pdf_was_uploaded = bool(user_message.pdf_s3_keys)
     logger.debug(f"Using reasoning_effort: {user_message.reasoning_effort}")
     if user_message.reasoning_effort and not litellm.supports_reasoning(
-        user_message.llm_model
+        f"openrouter/{user_message.llm_model}"
     ):
         raise ModelDoesNotSupportReasoningEffortError(
             f"Model {user_message.llm_model} does not support reasoning effort"
