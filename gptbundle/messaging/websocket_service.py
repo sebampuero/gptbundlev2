@@ -20,7 +20,7 @@ from .schemas import (
     WebSocketMessage,
     WebSocketMessageType,
 )
-from .service import append_messages, create_chat, get_chat
+from .service import append_messages, create_chat
 
 logger = logging.getLogger(__name__)
 
@@ -87,27 +87,12 @@ async def save_user_message(
         return False
 
 
-async def prepare_chat_history(
+async def update_chat_history(
     active_chat_id: str,
-    active_timestamp: float,
-    user_email: str,
-    chat_repo: ChatRepository,
+    user_message: MessageCreate,
 ) -> bool:
-    chat = await get_chat(
-        chat_id=active_chat_id,
-        timestamp=active_timestamp,
-        chat_repo=chat_repo,
-        user_email=user_email,
-    )
-
-    if chat:
-        history_wrapper = ChatMessageHistoryWrapper(session_id=active_chat_id)
-        history_wrapper.clear()
-        lc_messages = [msg_schema_to_lc_base_message(m) for m in chat.messages]
-        for msg in lc_messages:
-            history_wrapper.add_message(msg)
-        return chat.is_rag
-    return False
+    history_wrapper = ChatMessageHistoryWrapper(session_id=active_chat_id)
+    history_wrapper.add_message(msg_schema_to_lc_base_message(user_message))
 
 
 async def stream_ai_response(
@@ -118,13 +103,12 @@ async def stream_ai_response(
     user_email: str,
     chat_repo: ChatRepository,
     es_repo: ElasticsearchRepository,
-    is_rag_chat: bool = False,
+    is_rag_chat: bool,
 ) -> None:
     llm_model = user_message.llm_model
     ai_message = MessageCreate(
         content="", role=MessageRole.ASSISTANT, llm_model=llm_model
     )
-
     try:
         async for token in generate_text_response(
             user_message, active_chat_id, is_rag_chat

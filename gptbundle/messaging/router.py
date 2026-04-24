@@ -28,10 +28,10 @@ from .service import (
     get_chats_by_user_email_paginated,
 )
 from .websocket_service import (
-    prepare_chat_history,
     process_attachments,
     save_user_message,
     stream_ai_response,
+    update_chat_history,
 )
 
 logger = logging.getLogger(__name__)
@@ -285,9 +285,10 @@ async def websocket_text_generation_endpoint(
                     ).model_dump()
                 )
                 continue
-            user_message = MessageCreate.model_validate(data["user_message"])
+            user_message = MessageCreate.model_validate(data.get("user_message"))
             active_chat_id = data.get("chat_id")
             active_timestamp_raw = data.get("timestamp")
+            is_rag = data.get("is_rag")
             try:
                 active_timestamp = (
                     float(active_timestamp_raw)
@@ -327,11 +328,9 @@ async def websocket_text_generation_endpoint(
                 )
                 continue
 
-            is_rag = await prepare_chat_history(
+            await update_chat_history(
                 active_chat_id=active_chat_id,
-                active_timestamp=active_timestamp,
-                user_email=user_email,
-                chat_repo=chat_repo,
+                user_message=user_message,
             )
 
             await stream_ai_response(

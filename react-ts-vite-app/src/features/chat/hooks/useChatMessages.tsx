@@ -28,6 +28,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
     const timestampRef = useRef<string | undefined>(undefined);
     const currentImageS3Keys = useRef<string[]>([]);
     const currentPDFS3Keys = useRef<string[]>([]);
+    const isRagChatLoaded = useRef<boolean>(false);
     const navigate = useNavigate();
 
     // Model context to handle capabilities changes
@@ -134,6 +135,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
             if (data && data.messages) {
 
                 setMessages(data.messages);
+                isRagChatLoaded.current = data.is_rag;
 
             }
         } catch (error) {
@@ -328,6 +330,7 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 user_message: userMessage,
                 chat_id: chatIdRef.current,
                 timestamp: timestampRef.current,
+                is_rag: isRagChatLoaded.current,
             };
 
             ws.current.send(JSON.stringify(payload));
