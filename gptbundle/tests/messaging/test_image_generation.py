@@ -40,8 +40,8 @@ async def test_image_generation_returns_presigned_urls(
         content="Here is an image",
         role=MessageRole.ASSISTANT,
         message_type="text",
-        media_s3_keys=[s3_key],
-        presigned_urls=["https://example.com/presigned_url"],
+        img_s3_keys=[s3_key],
+        img_presigned_urls=["https://example.com/presigned_url"],
         llm_model="test-model",
     )
     mock_generate_image_response.return_value = mock_response_message
@@ -71,9 +71,12 @@ async def test_image_generation_returns_presigned_urls(
     cleanup_es.append(chat_id)
 
     assert assistant_message["role"] == "assistant"
-    assert assistant_message["media_s3_keys"] == [s3_key]
+    assert assistant_message["img_s3_keys"] == [s3_key]
 
     # These assertions should pass now
-    assert assistant_message["presigned_urls"] is not None
-    assert len(assistant_message["presigned_urls"]) == 1
-    assert assistant_message["presigned_urls"][0] == "https://example.com/presigned_url"
+    assert assistant_message["img_presigned_urls"] is not None
+    assert len(assistant_message["img_presigned_urls"]) == 1
+    assert (
+        assistant_message["img_presigned_urls"][0]
+        == "https://example.com/presigned_url"
+    )
