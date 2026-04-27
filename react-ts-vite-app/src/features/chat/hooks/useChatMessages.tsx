@@ -326,8 +326,14 @@ export const useChatMessages = (chatMetadata: ChatMetadata) => {
                 is_loading_message: true
             }]);
 
+            const websocketUserMessage = {
+                ...userMessage,
+                img_presigned_urls: undefined,
+                pdf_presigned_urls: undefined,
+            };
+
             const payload = {
-                user_message: userMessage,
+                user_message: websocketUserMessage,
                 chat_id: chatIdRef.current,
                 timestamp: timestampRef.current,
                 is_rag: isRagChatLoaded.current,

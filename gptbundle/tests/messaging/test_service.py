@@ -360,7 +360,7 @@ async def test_delete_chat_with_s3_objects(
             content="Hello with images",
             role=MessageRole.USER,
             message_type="image",
-            media_s3_keys=s3_keys,
+            img_s3_keys=s3_keys,
             llm_model="gpt4",
         )
     ]

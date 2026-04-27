@@ -21,12 +21,20 @@ def input_to_llm(message: MessageCreate) -> dict[str, Any]:
 
 
 def msg_schema_to_lc_base_message(message: MessageCreate) -> BaseMessage:
-    if message.img_presigned_urls:
+    content: str | list[dict[str, Any]] = message.content
+
+    image_urls = []
+    if message.img_s3_keys:
+        image_urls = [generate_presigned_url(key) for key in message.img_s3_keys]
+    elif message.img_presigned_urls:
+        image_urls = [
+            url for url in message.img_presigned_urls if not url.startswith("blob:")
+        ]
+
+    if image_urls:
         content = [{"type": "text", "text": message.content}]
-        for url in message.img_presigned_urls:
+        for url in image_urls:
             content.append({"type": "image_url", "image_url": {"url": url}})
-    else:
-        content = message.content
 
     if message.role == MessageRole.USER:
         return HumanMessage(content=content)

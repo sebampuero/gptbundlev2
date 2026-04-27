@@ -90,6 +90,8 @@ async def delete_chat(
     for msg in chat.messages:
         if msg.img_s3_keys:
             s3_keys.extend(msg.img_s3_keys)
+        if msg.pdf_s3_keys:
+            s3_keys.extend(msg.pdf_s3_keys)
 
     deleted = await asyncio.to_thread(
         chat_repo.delete_chat, chat_id, timestamp, user_email
