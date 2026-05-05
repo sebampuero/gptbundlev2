@@ -5,6 +5,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from gptbundle.llm.chat_factory import msg_schema_to_lc_base_message
+from gptbundle.llm.chat_message_history_wrapper import get_chat_history
 from gptbundle.llm.service import generate_image_response
 from gptbundle.security.service import get_current_user
 
@@ -73,6 +75,12 @@ async def retrieve_chat(
             status_code=404,
             detail="Chat not found",
         )
+
+    chat_history = get_chat_history(chat_id)
+    chat_history.clear()
+    for msg in chat.messages:
+        chat_history.add_message(msg_schema_to_lc_base_message(msg))
+
     return chat
 
 

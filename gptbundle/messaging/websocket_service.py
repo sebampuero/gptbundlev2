@@ -90,9 +90,13 @@ async def save_user_message(
 async def update_chat_history(
     active_chat_id: str,
     user_message: MessageCreate,
-) -> bool:
+):
+    logger.debug(f"Updating chat history for chat: {active_chat_id}")
     history_wrapper = ChatMessageHistoryWrapper(session_id=active_chat_id)
     history_wrapper.add_message(msg_schema_to_lc_base_message(user_message))
+    logger.debug(
+        f"The message history contains {len(history_wrapper.messages)} messages"
+    )
 
 
 async def stream_ai_response(
