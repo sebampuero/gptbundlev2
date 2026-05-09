@@ -34,13 +34,11 @@ def test_websocket_combined(
     mock_chunk.choices[0].delta.content = "I am a test model!"
 
     async def mock_gen(*args, **kwargs):
-        async def inner():
-            yield mock_chunk
-
-        return inner()
+        yield "I am a test model!"
 
     with patch(
-        "gptbundle.messaging.router.generate_text_response", side_effect=mock_gen
+        "gptbundle.messaging.websocket_service.generate_text_response",
+        side_effect=mock_gen,
     ):
         # 1. Test first connection
         chat_id_1 = str(uuid.uuid4())
