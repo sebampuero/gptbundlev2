@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from gptbundle.common.config import settings
-from gptbundle.llm.service import generate_image_response
+from gptbundle.llm.service import generate_image_response, generate_text_response
 from gptbundle.messaging.schemas import MessageCreate, MessageRole
 
 
@@ -83,3 +83,105 @@ async def test_generate_image_response_invalid_type():
 
     with pytest.raises(ValueError, match="Chat message type must be 'image'"):
         await generate_image_response(user_message)
+
+
+@pytest.mark.asyncio
+async def test_generate_text_response_conversational_chain():
+    # Mock data
+    user_message = MessageCreate(
+        content="Hello",
+        role=MessageRole.USER,
+        message_type="text",
+        llm_model="gpt-4",
+    )
+    chat_id = "test-chat-id"
+
+    # Mock chain and astream
+    mock_chain = Mock()
+    mock_astream_call = Mock()
+
+    async def mock_astream(*args, **kwargs):
+        mock_astream_call(*args, **kwargs)
+
+        class MockToken:
+            def __init__(self, content):
+                self.content = content
+
+        yield MockToken("Hello")
+        yield MockToken(" world")
+
+    mock_chain.astream = mock_astream
+
+    with patch("gptbundle.llm.service.router.route") as mock_route:
+        mock_route.return_value = mock_chain
+
+        # Execute
+        generator = generate_text_response(user_message, chat_id, is_rag_chat=False)
+        tokens = [token async for token in generator]
+
+        # Verify
+        assert tokens == ["Hello", " world"]
+        mock_route.assert_called_once_with(
+            use_rag=False,
+            chat_id=chat_id,
+            is_rag_chat=False,
+        )
+        mock_astream_call.assert_called_once_with(
+            {"input": "Hello"},
+            config={
+                "configurable": {
+                    "session_id": chat_id,
+                    "llm_model": "gpt-4",
+                    "reasoning_effort": None,
+                }
+            },
+        )
+
+
+@pytest.mark.asyncio
+async def test_generate_text_response_rag_chain():
+    # Mock data
+    user_message = MessageCreate(
+        content="What is in the document?",
+        role=MessageRole.USER,
+        message_type="text",
+        llm_model="gpt-4",
+        pdf_s3_keys=["doc1.pdf"],
+    )
+    chat_id = "test-chat-id"
+
+    # Mock chain and astream
+    mock_chain = Mock()
+    mock_astream_call = Mock()
+
+    async def mock_astream(*args, **kwargs):
+        mock_astream_call(*args, **kwargs)
+        yield {"answer": "This is"}
+        yield {"answer": " a RAG response"}
+
+    mock_chain.astream = mock_astream
+
+    with patch("gptbundle.llm.service.router.route") as mock_route:
+        mock_route.return_value = mock_chain
+
+        # Execute
+        generator = generate_text_response(user_message, chat_id, is_rag_chat=True)
+        tokens = [token async for token in generator]
+
+        # Verify
+        assert tokens == ["This is", " a RAG response"]
+        mock_route.assert_called_once_with(
+            use_rag=True,
+            chat_id=chat_id,
+            is_rag_chat=True,
+        )
+        mock_astream_call.assert_called_once_with(
+            {"input": "What is in the document?"},
+            config={
+                "configurable": {
+                    "session_id": chat_id,
+                    "llm_model": "gpt-4",
+                    "reasoning_effort": None,
+                }
+            },
+        )

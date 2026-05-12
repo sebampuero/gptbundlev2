@@ -103,7 +103,8 @@ admin-cli --help
 
 ## Next TODOs
 
-- Add quota for models that are not free (if possible also for vision, audio, files, etc)
-- Add background tasks (celery or built-in FastAPI) that clean temp S3 folder. Maybe not, a periodic lambda function could do the job too.
-- Add audio and PDF capabilities
-- Improve session management (more robust logic, ability to log off)
+- [ ] Add quota for models that are not free (if possible also for vision, audio, files, etc)
+- [ ] Add background tasks (celery or built-in FastAPI) that clean temp S3 folder. Maybe not, a periodic lambda function could do the job too.
+- [x] Add PDF capabilities
+- [ ] Improve session management (more robust logic, ability to log off)
+- [ ] The storage of messages in DynamoDB and ES needs to be segregated. In case of errors, data is not consistent anymore.
